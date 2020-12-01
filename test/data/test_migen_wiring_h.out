@@ -1,0 +1,467 @@
+#include <string>
+#include <systemc>
+using namespace sc_core;
+
+#ifndef __RETURN_1000_0_MODULE__
+#define __RETURN_1000_0_MODULE__
+
+class Return_1000_0_module : public sc_module
+{
+private:
+    uint64_t no_ins, no_outs;
+    void set_sysc_return();
+public:
+    uint64_t no_inputs, no_outputs;
+    sc_fifo<sc_dt::sc_bv<32>>* sysc_return;
+    int get_no_inputs() const;
+    int get_no_outputs() const;
+    void body();
+    SC_HAS_PROCESS(Return_1000_0_module);
+    Return_1000_0_module(sc_module_name name);
+};
+#endif
+// Verilated -*- SystemC -*-
+// DESCRIPTION: Verilator output: Primary design header
+//
+// This header should be included by all source files instantiating the design.
+// The class here is then constructed to instantiate the design.
+// See the Verilator manual for examples.
+
+#ifndef _VCOUNTER1_1_H_
+#define _VCOUNTER1_1_H_  // guard
+
+#include "systemc.h"
+#include "verilated_sc.h"
+#include "verilated.h"
+
+class Vcounter1_1__Syms;
+
+//----------
+
+SC_MODULE(Vcounter1_1) {
+  public:
+    
+    // PORTS
+    // The application code writes and reads these signals to
+    // propagate new values into/out from the Verilated model.
+    sc_in<sc_bv<32> > i1_in_data;
+    sc_in<sc_bv<1> > i1_in_valid;
+    sc_out<sc_bv<1> > i1_in_ready;
+    sc_out<sc_bv<32> > o1_out_data;
+    sc_out<sc_bv<1> > o1_out_valid;
+    sc_in<sc_bv<1> > o1_out_ready;
+    sc_in<sc_bv<1> > sys_clk;
+    sc_in<sc_bv<1> > sys_rst;
+    
+    // LOCAL SIGNALS
+    // Internals; generally not touched by application code
+    WData/*999:0*/ counter1_1__DOT__counter[32];
+    IData/*31:0*/ counter1_1__DOT__mem1[100];
+    IData/*31:0*/ counter1_1__DOT__mem2[100];
+    
+    // LOCAL VARIABLES
+    // Internals; generally not touched by application code
+    CData/*0:0*/ __Vcellinp__counter1_1__sys_clk;
+    CData/*0:0*/ __Vcellinp__counter1_1__sys_rst;
+    CData/*0:0*/ __Vcellinp__counter1_1__o1_out_ready;
+    CData/*0:0*/ __Vcellout__counter1_1__o1_out_valid;
+    CData/*0:0*/ __Vcellout__counter1_1__i1_in_ready;
+    CData/*0:0*/ __Vclklast__TOP____Vcellinp__counter1_1__sys_clk;
+    IData/*31:0*/ __Vcellout__counter1_1__o1_out_data;
+    IData/*31:0*/ __Vcellinp__counter1_1__i1_in_data;
+    
+    // INTERNAL VARIABLES
+    // Internals; generally not touched by application code
+    Vcounter1_1__Syms* __VlSymsp;  // Symbol table
+    
+    // PARAMETERS
+    // Parameters marked /*verilator public*/ for use by application code
+    
+    // CONSTRUCTORS
+  private:
+    VL_UNCOPYABLE(Vcounter1_1);  ///< Copying not allowed
+  public:
+    SC_CTOR(Vcounter1_1);
+    virtual ~Vcounter1_1();
+    
+    // API METHODS
+  private:
+    void eval();
+  public:
+    void final();
+    
+    // INTERNAL METHODS
+  private:
+    static void _eval_initial_loop(Vcounter1_1__Syms* __restrict vlSymsp);
+  public:
+    void __Vconfigure(Vcounter1_1__Syms* symsp, bool first);
+  private:
+    static QData _change_request(Vcounter1_1__Syms* __restrict vlSymsp);
+  public:
+    static void _combo__TOP__2(Vcounter1_1__Syms* __restrict vlSymsp);
+    static void _combo__TOP__5(Vcounter1_1__Syms* __restrict vlSymsp);
+  private:
+    void _ctor_var_reset() VL_ATTR_COLD;
+  public:
+    static void _eval(Vcounter1_1__Syms* __restrict vlSymsp);
+  private:
+#ifdef VL_DEBUG
+    void _eval_debug_assertions();
+#endif  // VL_DEBUG
+  public:
+    static void _eval_initial(Vcounter1_1__Syms* __restrict vlSymsp) VL_ATTR_COLD;
+    static void _eval_settle(Vcounter1_1__Syms* __restrict vlSymsp) VL_ATTR_COLD;
+    static void _initial__TOP__1(Vcounter1_1__Syms* __restrict vlSymsp) VL_ATTR_COLD;
+    static void _sequent__TOP__4(Vcounter1_1__Syms* __restrict vlSymsp);
+    static void _settle__TOP__3(Vcounter1_1__Syms* __restrict vlSymsp) VL_ATTR_COLD;
+} VL_ATTR_ALIGNED(128);
+
+#endif  // guard
+// Verilated -*- SystemC -*-
+// DESCRIPTION: Verilator output: Primary design header
+//
+// This header should be included by all source files instantiating the design.
+// The class here is then constructed to instantiate the design.
+// See the Verilator manual for examples.
+
+#ifndef _VCOUNTER2_2_H_
+#define _VCOUNTER2_2_H_  // guard
+
+#include "systemc.h"
+#include "verilated_sc.h"
+#include "verilated.h"
+
+class Vcounter2_2__Syms;
+
+//----------
+
+SC_MODULE(Vcounter2_2) {
+  public:
+    
+    // PORTS
+    // The application code writes and reads these signals to
+    // propagate new values into/out from the Verilated model.
+    sc_in<sc_bv<32> > i1_in_data;
+    sc_in<sc_bv<1> > i1_in_valid;
+    sc_out<sc_bv<1> > i1_in_ready;
+    sc_out<sc_bv<32> > o1_out_data;
+    sc_out<sc_bv<1> > o1_out_valid;
+    sc_in<sc_bv<1> > o1_out_ready;
+    sc_in<sc_bv<1> > sys_clk;
+    sc_in<sc_bv<1> > sys_rst;
+    
+    // LOCAL SIGNALS
+    // Internals; generally not touched by application code
+    WData/*999:0*/ counter2_2__DOT__counter[32];
+    IData/*31:0*/ counter2_2__DOT__mem1[100];
+    IData/*31:0*/ counter2_2__DOT__mem2[100];
+    
+    // LOCAL VARIABLES
+    // Internals; generally not touched by application code
+    CData/*0:0*/ __Vcellinp__counter2_2__sys_clk;
+    CData/*0:0*/ __Vcellinp__counter2_2__sys_rst;
+    CData/*0:0*/ __Vcellinp__counter2_2__o1_out_ready;
+    CData/*0:0*/ __Vcellout__counter2_2__o1_out_valid;
+    CData/*0:0*/ __Vcellout__counter2_2__i1_in_ready;
+    CData/*0:0*/ __Vclklast__TOP____Vcellinp__counter2_2__sys_clk;
+    IData/*31:0*/ __Vcellout__counter2_2__o1_out_data;
+    IData/*31:0*/ __Vcellinp__counter2_2__i1_in_data;
+    
+    // INTERNAL VARIABLES
+    // Internals; generally not touched by application code
+    Vcounter2_2__Syms* __VlSymsp;  // Symbol table
+    
+    // PARAMETERS
+    // Parameters marked /*verilator public*/ for use by application code
+    
+    // CONSTRUCTORS
+  private:
+    VL_UNCOPYABLE(Vcounter2_2);  ///< Copying not allowed
+  public:
+    SC_CTOR(Vcounter2_2);
+    virtual ~Vcounter2_2();
+    
+    // API METHODS
+  private:
+    void eval();
+  public:
+    void final();
+    
+    // INTERNAL METHODS
+  private:
+    static void _eval_initial_loop(Vcounter2_2__Syms* __restrict vlSymsp);
+  public:
+    void __Vconfigure(Vcounter2_2__Syms* symsp, bool first);
+  private:
+    static QData _change_request(Vcounter2_2__Syms* __restrict vlSymsp);
+  public:
+    static void _combo__TOP__2(Vcounter2_2__Syms* __restrict vlSymsp);
+    static void _combo__TOP__5(Vcounter2_2__Syms* __restrict vlSymsp);
+  private:
+    void _ctor_var_reset() VL_ATTR_COLD;
+  public:
+    static void _eval(Vcounter2_2__Syms* __restrict vlSymsp);
+  private:
+#ifdef VL_DEBUG
+    void _eval_debug_assertions();
+#endif  // VL_DEBUG
+  public:
+    static void _eval_initial(Vcounter2_2__Syms* __restrict vlSymsp) VL_ATTR_COLD;
+    static void _eval_settle(Vcounter2_2__Syms* __restrict vlSymsp) VL_ATTR_COLD;
+    static void _initial__TOP__1(Vcounter2_2__Syms* __restrict vlSymsp) VL_ATTR_COLD;
+    static void _sequent__TOP__4(Vcounter2_2__Syms* __restrict vlSymsp);
+    static void _settle__TOP__3(Vcounter2_2__Syms* __restrict vlSymsp) VL_ATTR_COLD;
+} VL_ATTR_ALIGNED(128);
+
+#endif  // guard
+#include <string>
+#include <systemc>
+using namespace sc_core;
+#include "Python.h"
+
+#ifndef __PRINT_THEN_EXIT_3_MODULE__
+#define __PRINT_THEN_EXIT_3_MODULE__
+
+class Print_Then_Exit_3_module : public sc_module
+{
+private:
+    PyObject *pBody, *pName, *pModule, *pyC, *pExit;
+    uint64_t no_ins, no_outs;
+    PyObject* type_sysc_n;
+    PyObject* get_sysc_n();
+    sc_dt::sc_bv<32> bits_sysc_n;
+public:
+    uint64_t no_inputs, no_outputs;
+    sc_fifo<sc_dt::sc_bv<32>>* sysc_n;
+    int get_no_inputs() const;
+    int get_no_outputs() const;
+    void body();
+    SC_HAS_PROCESS(Print_Then_Exit_3_module);
+    Print_Then_Exit_3_module(sc_module_name name);
+};
+#endif
+
+#ifndef __TEST_MIGEN_WIRING__
+#define __TEST_MIGEN_WIRING__
+#include <systemc>
+using namespace sc_core;
+using namespace sc_dt;
+
+// TODO: Find better way of handling trace files
+sc_trace_file *Tf;
+
+// Converts clock signals to bit vectors for Migen nodes
+SC_MODULE(ClkToBV) {
+    sc_in<bool> clk;
+    sc_out<sc_bv<1>> clkout;
+
+    void run() {
+        clkout.write(clk.read());
+    }
+
+    SC_CTOR(ClkToBV) {
+        SC_METHOD(run);
+        sensitive << clk;
+    }
+};
+
+// Adaptor for going from Python to Migen
+template <class T> SC_MODULE(PythonToMigen) {
+    sc_in<bool> clk;
+    sc_out<T> migen_data_out;
+    sc_out<sc_bv<1>> migen_valid_out;
+    sc_in<sc_bv<1>> migen_ready_in;
+    sc_fifo<T>* py_in;
+
+    void run() {
+        if (migen_ready_in.read() == 1) {
+            T val;
+            if (py_in->nb_read(val)) {
+                migen_data_out.write(val);
+                migen_valid_out.write(1);
+            } else {
+                migen_valid_out.write(0);
+            }
+        }
+    }
+
+    SC_CTOR(PythonToMigen) {
+        SC_METHOD(run);
+        sensitive << clk;
+    }
+};
+
+// Adaptor for going from Migen to Python
+template <class T> SC_MODULE(MigenToPython) {
+    sc_in<bool> clk;
+    sc_in<T> migen_in;
+    sc_in<sc_bv<1>> migen_valid_in;
+    sc_out<sc_bv<1>> migen_ready_out;
+    sc_fifo<T>* py_out;
+
+    void run() {
+        while (true) {
+            wait();
+            if (py_out->num_free() > 0) {
+                migen_ready_out.write(1);
+                if (migen_valid_in.read() == 1) {
+                    py_out->write(migen_in.read());
+                }
+            } else {
+                migen_ready_out.write(0);
+            }
+        }
+    }
+
+    SC_CTOR(MigenToPython) {
+        SC_THREAD(run);
+        sensitive << clk;
+    }
+};
+
+SC_MODULE(Test_Migen_Wiring){
+
+// Python nodes to Python nodes just need a queue
+
+// Migen nodes to Migen nodes need data wires,
+// as well as valid and ready signals
+sc_signal<sc_bv<32>> wire_1_0_2_0_data;
+sc_signal<sc_bv<1>> wire_1_0_2_0_valid;
+sc_signal<sc_bv<1>> wire_1_0_2_0_ready;
+
+// Python to Migen need an adaptor which maps a queue
+// to data, valid and ready signals.
+sc_fifo<sc_dt::sc_bv<32>> wire_0_0_1_0_py_out;
+sc_signal<sc_bv<32>> wire_0_0_1_0_migen_in;
+sc_signal<sc_bv<1>> wire_0_0_1_0_in_valid;
+sc_signal<sc_bv<1>> wire_0_0_1_0_in_ready;
+PythonToMigen<sc_bv<32>> wire_0_0_1_0_adaptor;
+
+// Migen to Python need an adaptor which maps signals
+// to a queue
+sc_fifo<sc_dt::sc_bv<32>> wire_2_0_3_0_py_in;
+sc_signal<sc_bv<32>> wire_2_0_3_0_migen_out;
+sc_signal<sc_bv<1>> wire_2_0_3_0_out_valid;
+sc_signal<sc_bv<1>> wire_2_0_3_0_out_ready;
+MigenToPython<sc_bv<32>> wire_2_0_3_0_adaptor;
+
+// Python to template need a public queue
+
+// Template to python need a public queue
+
+// Migen to template need public data, valid and ready signals
+
+// Template to Migen need public data, valid and ready signals
+
+sc_in<bool> clk, rst;
+sc_signal<sc_dt::sc_bv<1>> rst_bv;
+
+// Node modules
+Return_1000_0_module return_1000_0;
+Print_Then_Exit_3_module print_then_exit_3;
+
+Vcounter1_1 counter1_1;
+ClkToBV counter1_1_clk;
+sc_signal<sc_bv<1>> counter1_1_sysclk;
+Vcounter2_2 counter2_2;
+ClkToBV counter2_2_clk;
+sc_signal<sc_bv<1>> counter2_2_sysclk;
+
+// Constructor first initialises queues, modules and adaptors
+typedef Test_Migen_Wiring SC_CURRENT_USER_MODULE;
+Test_Migen_Wiring(sc_module_name name, sc_trace_file *Tf):
+wire_0_0_1_0_py_out("wire_0_0_1_0_py_out"),
+wire_0_0_1_0_adaptor("wire_0_0_1_0_adaptor"),
+wire_2_0_3_0_py_in("wire_2_0_3_0_py_in"),
+wire_2_0_3_0_adaptor("wire_2_0_3_0_adaptor"),
+return_1000_0("return_1000_0"),
+print_then_exit_3("print_then_exit_3"),
+counter1_1("counter1_1"),
+counter1_1_clk("counter1_1_clk"),
+counter2_2("counter2_2"),
+counter2_2_clk("counter2_2_clk")
+{
+    SC_METHOD(rstprop);
+    sensitive << rst;
+
+    // Wiring the clock to the Migen nodes
+    counter1_1_clk.clk(clk);
+    counter1_1_clk.clkout.bind(counter1_1_sysclk);
+    counter1_1.sys_clk.bind(counter1_1_sysclk);
+    sc_trace(Tf, counter1_1_sysclk, "counter1_1_sysclk");
+    counter1_1.sys_rst.bind(rst_bv);
+    counter2_2_clk.clk(clk);
+    counter2_2_clk.clkout.bind(counter2_2_sysclk);
+    counter2_2.sys_clk.bind(counter2_2_sysclk);
+    sc_trace(Tf, counter2_2_sysclk, "counter2_2_sysclk");
+    counter2_2.sys_rst.bind(rst_bv);
+
+    // Wiring the Python to Python nodes
+
+    // Wiring the Migen to Migen nodes
+    counter1_1.o1_out_data.bind(wire_1_0_2_0_data);
+    counter2_2.i1_in_data.bind(wire_1_0_2_0_data);
+    counter1_1.o1_out_valid.bind(wire_1_0_2_0_valid);
+    counter2_2.i1_in_valid.bind(wire_1_0_2_0_valid);
+    counter1_1.o1_out_ready.bind(wire_1_0_2_0_ready);
+    counter2_2.i1_in_ready.bind(wire_1_0_2_0_ready);
+
+    // Wiring the Python to Migen nodes
+    return_1000_0.sysc_return = &wire_0_0_1_0_py_out;
+    wire_0_0_1_0_adaptor.clk(clk);
+    wire_0_0_1_0_adaptor.py_in = &wire_0_0_1_0_py_out;
+    wire_0_0_1_0_adaptor.migen_data_out.bind(wire_0_0_1_0_migen_in);
+    wire_0_0_1_0_adaptor.migen_valid_out.bind(wire_0_0_1_0_in_valid);
+    wire_0_0_1_0_adaptor.migen_ready_in.bind(wire_0_0_1_0_in_ready);
+    counter1_1.i1_in_data.bind(wire_0_0_1_0_migen_in);
+    counter1_1.i1_in_valid.bind(wire_0_0_1_0_in_valid);
+    counter1_1.i1_in_ready.bind(wire_0_0_1_0_in_ready);
+
+    // Wiring the Migen to Python nodes
+    wire_2_0_3_0_adaptor.clk(clk);
+    wire_2_0_3_0_adaptor.migen_in.bind(wire_2_0_3_0_migen_out);
+    wire_2_0_3_0_adaptor.migen_valid_in.bind(wire_2_0_3_0_out_valid);
+    wire_2_0_3_0_adaptor.migen_ready_out.bind(wire_2_0_3_0_out_ready);
+    wire_2_0_3_0_adaptor.py_out = &wire_2_0_3_0_py_in;
+    counter2_2.o1_out_data.bind(wire_2_0_3_0_migen_out);
+    counter2_2.o1_out_valid.bind(wire_2_0_3_0_out_valid);
+    counter2_2.o1_out_ready.bind(wire_2_0_3_0_out_ready);
+    print_then_exit_3.sysc_n = &wire_2_0_3_0_py_in;
+
+    // Wiring the Python to template nodes
+
+    // Wiring the template to Python nodes
+
+    // Wiring the Migen to template nodes
+
+    // Wiring the template to Migen nodes
+
+    // Add tracing
+
+    sc_trace(Tf, wire_1_0_2_0_data, "wire_1_0_2_0_data");
+    sc_trace(Tf, wire_1_0_2_0_valid, "wire_1_0_2_0_valid");
+    sc_trace(Tf, wire_1_0_2_0_ready, "wire_1_0_2_0_ready");
+
+    wire_0_0_1_0_py_out.trace(Tf);
+    sc_trace(Tf, wire_0_0_1_0_migen_in, "wire_0_0_1_0_migen_in");
+    sc_trace(Tf, wire_0_0_1_0_in_valid, "wire_0_0_1_0_in_valid");
+    sc_trace(Tf, wire_0_0_1_0_in_ready, "wire_0_0_1_0_in_ready");
+
+    wire_2_0_3_0_py_in.trace(Tf);
+    sc_trace(Tf, wire_2_0_3_0_migen_out, "wire_2_0_3_0_migen_out");
+    sc_trace(Tf, wire_2_0_3_0_out_valid, "wire_2_0_3_0_out_valid");
+    sc_trace(Tf, wire_2_0_3_0_out_ready, "wire_2_0_3_0_out_ready");
+
+
+
+
+}
+
+void rstprop() {
+    // Propogate reset signal to Migen nodes
+    rst_bv.write(rst.read());
+}
+
+};
+
+#endif
