@@ -46,8 +46,7 @@ RUN pip install -U pip-licenses
 RUN pip install --no-cache-dir pybind11
 RUN pip install --no-cache-dir -r /opt/dev_requirements.txt
 RUN pip install --no-cache-dir \
-                --trusted-host 51.132.8.186 \
-                --extra-index-url 'http://51.132.8.186:8080' \
+                --extra-index-url 'https://test.pypi.org/simple/' \
                 -r /opt/install_requirements.txt
 
 # The image above can be stored on the Docker Registry for quicker rebuild.

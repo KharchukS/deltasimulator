@@ -54,13 +54,16 @@ DEXEC=docker exec \
 	--interactive \
 	$(shell cat container)
 
-PYPIURL=http://51.132.8.186:8080
-
-UPLOADPACKAGE=python -m twine upload \
-	--repository-url ${PYPIURL} \
+TESTUPLOADPACKAGE=python -m twine upload \
+	--repository testpypi \
 	-u $(user) \
 	-p $(pass) \
-	dist/* 
+	dist/*
+
+UPLOADPACKAGE=python -m twine upload \
+	-u $(user) \
+	-p $(pass) \
+	dist/*
 
 MAKEPACKAGE=python setup.py sdist bdist_wheel
 
@@ -189,8 +192,12 @@ build-package: clean-package container ## Make the package
 	${DEXEC} ${MAKEPACKAGE}
 	${DEXEC} ${CHECKPACKAGE}
 
+.PHONY: test-upload-package
+test-upload-package: build-package ## Make and upload the package to test.pypi.org
+	${DEXEC} ${TESTUPLOADPACKAGE}
+
 .PHONY: upload-package
-upload-package: build-package ## Make and upload the package to private PyPI
+upload-package: build-package ## Make and upload the package to pypi.org
 	${DEXEC} ${UPLOADPACKAGE}
 
 .PHONY: test-package
@@ -311,6 +318,10 @@ dev-build-package: clean-package ## See non-dev version
 .PHONY: dev-upload-package
 dev-upload-package: dev-build-package ## See non-dev version
 	${UPLOADPACKAGE}
+
+.PHONY: dev-test-upload-package
+dev-test-upload-package: dev-build-package ## See non-dev version
+	${TESTUPLOADPACKAGE}
 
 .PHONY: dev-test-package
 dev-test-package: ## See non-dev version

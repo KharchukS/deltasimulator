@@ -4,7 +4,7 @@ Deltasimulator documentation
 ============================
 
 `GitHub Repo <https://github.com/riverlane/deltasimulator>`_ |
-`PyPI <https://test.pypi.org/project/deltasimulator>`_ |
+`PyPI <https://pypi.org/project/deltasimulator>`_ |
 `Official Deltaflow Discord <https://discord.gg/Gd2bYKvAeW>`_ |
 `Riverlane Website <https://www.riverlane.com>`_
 

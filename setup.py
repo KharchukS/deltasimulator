@@ -50,5 +50,5 @@ setuptools.setup(
         'Topic :: System :: Emulators'
     ],
     install_requires=read_requirements_txt(install_reqs_path),
-    python_requires='>=3.8'
+    python_requires='==3.8.*'
 )

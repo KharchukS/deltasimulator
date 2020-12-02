@@ -48,7 +48,7 @@ __copyright__ = "Copyright (C) 2020 River Lane Research Ltd"
 # Source URL
 __url__ = "https://github.com/riverlane/deltasimulator"
 # Package Hosting URL
-__download_url__ = "https://test.pypi.org/project/deltasimulator/#files"
+__download_url__ = "https://pypi.org/project/deltasimulator/#files"
 # Docs Hosting Url
 __docs_url__ = "https://riverlane.github.io/deltasimulator"
 
@@ -62,7 +62,7 @@ __contributors__ = ", ".join(contributors)
 __contributors_lines__ = "\n".join(contributors)
 __email__ = "deltaflow@riverlane.com"
 
-version_info = (0, 3, 0)
+version_info = (0, 3, 1)
 """Tuple[int, int, int] : version information
 The three components of the version:
 ``major``, ``minor`` and ``micro``: Module level variable documented inline.

@@ -16,7 +16,7 @@ for this system and all it's components can be found
 
 * [Documentation](https://riverlane.github.io/deltasimulator)
 
-* [PyPI](https://test.pypi.org/project/deltasimulator)
+* [PyPI](https://pypi.org/project/deltasimulator)
 
 * [GitHub](https://github.com/riverlane/deltasimulator)
 
