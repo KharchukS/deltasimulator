@@ -452,7 +452,7 @@ class WiringEnv(CPPEnv):
         /*[[[cog
             for wire in self._py_to_template:
                 name = self.get_template_wire_name(wire, body="python", direction="out")
-                cog.outl('sc_fifo<{PythonatorEnv.as_c_type(self._capnp_nodes[wire.destNode].inPorts[wire.destInPort].type)}> {name};')
+                cog.outl(f'sc_fifo<{PythonatorEnv.as_c_type(self._capnp_nodes[wire.destNode].inPorts[wire.destInPort].type)}> {name};')
         ]]]*/
         //[[[end]]]
 
@@ -460,7 +460,7 @@ class WiringEnv(CPPEnv):
         /*[[[cog
             for wire in self._template_to_py:
                 name = self.get_template_wire_name(wire, body="python", direction="in")
-                cog.outl('sc_fifo<{PythonatorEnv.as_c_type(self._capnp_nodes[wire.destNode].inPorts[wire.destInPort].type)}> {name};')
+                cog.outl(f'sc_fifo<{PythonatorEnv.as_c_type(self._capnp_nodes[wire.destNode].inPorts[wire.destInPort].type)}> {name};')
         ]]]*/
         //[[[end]]]
 

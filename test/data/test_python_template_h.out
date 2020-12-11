@@ -161,11 +161,11 @@ SC_MODULE(Test_Python_Template){
 // to a queue
 
 // Python to template need a public queue
-sc_fifo<{PythonatorEnv.as_c_type(self._capnp_nodes[wire.destNode].inPorts[wire.destInPort].type)}> {name};
-sc_fifo<{PythonatorEnv.as_c_type(self._capnp_nodes[wire.destNode].inPorts[wire.destInPort].type)}> {name};
+sc_fifo<sc_dt::sc_bv<32>> node_0_sysc_return;
+sc_fifo<sc_dt::sc_bv<32>> node_1_sysc_return;
 
 // Template to python need a public queue
-sc_fifo<{PythonatorEnv.as_c_type(self._capnp_nodes[wire.destNode].inPorts[wire.destInPort].type)}> {name};
+sc_fifo<sc_dt::sc_bv<32>> print_then_exit_3_sysc_n;
 
 // Migen to template need public data, valid and ready signals
 
