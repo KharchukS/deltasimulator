@@ -5,7 +5,7 @@ from os import path
 from deltalanguage.data_types import DInt, DSize, NoMessage, make_forked_return
 from deltalanguage.wiring import DeltaBlock, DeltaGraph, template_node_factory, Interactive, PyInteractiveNode
 from deltalanguage.runtime import DeltaRuntimeExit, serialize_graph
-from deltasimulator.lib import build_program
+from deltasimulator.lib import generate_wiring, _wait_for_build
 
 from test._utils import (DUT1,
                          add,
@@ -20,7 +20,7 @@ class TestWiring(unittest.TestCase):
     def check_build(self, test_graph):
         """Build SystemC program and run tests."""
         _, program = serialize_graph(test_graph)
-        _, _, wiring = build_program(program)
+        _, _, wiring = generate_wiring(program)
         asyncio.run(self.assert_build_correct(wiring, test_graph.name))
 
     async def assert_build_correct(self, wiring, prog_name):
@@ -29,26 +29,26 @@ class TestWiring(unittest.TestCase):
         template nodes.
         """
         built = {}
+        for comp in wiring:
+            built[comp] = await asyncio.wait_for(wiring[comp].data, timeout=None)
+        # Check binary files have been generated
+        self.assertTrue(f"{prog_name}.a" in built)
+        if f"{prog_name}.o" in wiring:
+            self.assertTrue(f"{prog_name}.o" in built)
+        # Now check all the other files
+        mdiff = self.maxDiff
         self.maxDiff = None
         if f"{prog_name}.cpp" in wiring:
-            built[f"{prog_name}.cpp"] = await asyncio.wait_for(wiring[f"{prog_name}.cpp"].data, timeout=None)
             with open(path.join("test", "data", f"{prog_name}_cpp.out"),
                       "rb") as cpp_file:
                 ref = cpp_file.read().decode("utf-8")
                 gen = built[f"{prog_name}.cpp"].decode("utf-8")
                 self.assertMultiLineEqual(gen, ref)
-        built[f"{prog_name}.a"] = await asyncio.wait_for(wiring[f"{prog_name}.a"].data,
-                                                         timeout=None)
-        built[f"{prog_name}.h"] = await asyncio.wait_for(wiring[f"{prog_name}.h"].data, timeout=None)
-        self.maxDiff = None
         with open(path.join("test", "data", f"{prog_name}_h.out"), "rb") as h_file:
             ref = h_file.read().decode("utf-8")
             gen = built[f"{prog_name}.h"].decode("utf-8")
             self.assertMultiLineEqual(gen, ref)
-        if f"{prog_name}.o" in wiring:
-            built[f"{prog_name}.o"] = await asyncio.wait_for(wiring[f"{prog_name}.o"].data, timeout=None)
-        if f"{prog_name}" in wiring:
-            built[f"{prog_name}"] = await asyncio.wait_for(wiring[f"{prog_name}"].data, timeout=None)
+        self.maxDiff = mdiff
 
     def test_add(self):
         with DeltaGraph(name="test_add") as test_graph:

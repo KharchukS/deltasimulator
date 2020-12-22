@@ -16,6 +16,7 @@ Deltasimulator documentation
         :hidden:
 
         install
+        coderef
         development
         faq
         license

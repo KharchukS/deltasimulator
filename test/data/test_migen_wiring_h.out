@@ -20,6 +20,32 @@ public:
     Return_1000_0_module(sc_module_name name);
 };
 #endif
+#include <string>
+#include <systemc>
+using namespace sc_core;
+#include "Python.h"
+
+#ifndef __PRINT_THEN_EXIT_3_MODULE__
+#define __PRINT_THEN_EXIT_3_MODULE__
+
+class Print_Then_Exit_3_module : public sc_module
+{
+private:
+    PyObject *pBody, *pName, *pModule, *pyC, *pExit;
+    uint64_t no_ins, no_outs;
+    PyObject* type_sysc_n;
+    PyObject* get_sysc_n();
+    sc_dt::sc_bv<32> bits_sysc_n;
+public:
+    uint64_t no_inputs, no_outputs;
+    sc_fifo<sc_dt::sc_bv<32>>* sysc_n;
+    int get_no_inputs() const;
+    int get_no_outputs() const;
+    void body();
+    SC_HAS_PROCESS(Print_Then_Exit_3_module);
+    Print_Then_Exit_3_module(sc_module_name name);
+};
+#endif
 // Verilated -*- SystemC -*-
 // DESCRIPTION: Verilator output: Primary design header
 //
@@ -214,32 +240,6 @@ SC_MODULE(Vcounter2_2) {
 } VL_ATTR_ALIGNED(128);
 
 #endif  // guard
-#include <string>
-#include <systemc>
-using namespace sc_core;
-#include "Python.h"
-
-#ifndef __PRINT_THEN_EXIT_3_MODULE__
-#define __PRINT_THEN_EXIT_3_MODULE__
-
-class Print_Then_Exit_3_module : public sc_module
-{
-private:
-    PyObject *pBody, *pName, *pModule, *pyC, *pExit;
-    uint64_t no_ins, no_outs;
-    PyObject* type_sysc_n;
-    PyObject* get_sysc_n();
-    sc_dt::sc_bv<32> bits_sysc_n;
-public:
-    uint64_t no_inputs, no_outputs;
-    sc_fifo<sc_dt::sc_bv<32>>* sysc_n;
-    int get_no_inputs() const;
-    int get_no_outputs() const;
-    void body();
-    SC_HAS_PROCESS(Print_Then_Exit_3_module);
-    Print_Then_Exit_3_module(sc_module_name name);
-};
-#endif
 
 #ifndef __TEST_MIGEN_WIRING__
 #define __TEST_MIGEN_WIRING__

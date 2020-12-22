@@ -1,14 +1,19 @@
 import migen
+from random import randint
 
 from deltalanguage.data_types import (DInt,
+                                      DUInt,
                                       DOptional,
                                       DSize,
-                                      NoMessage, 
+                                      NoMessage,
                                       DBool)
 from deltalanguage.runtime import DeltaRuntimeExit
-from deltalanguage.wiring import DeltaBlock, MigenNodeTemplate
+from deltalanguage.wiring import (DeltaBlock,
+                                  MigenNodeTemplate,
+                                  PyInteractiveNode,
+                                  Interactive)
 
-from os import makedirs
+from deltalanguage.lib.hal import command_creator
 
 @DeltaBlock()
 def add_const(a: int, b: int) -> int:
@@ -94,5 +99,16 @@ class DUT1(MigenNodeTemplate):
             )
         )
 
+@Interactive(in_params={"measurement": DUInt(DSize(32))}, out_type=DUInt(DSize(32)),
+    name="interactive_simple")
+def send_gates_list_then_exit(node: PyInteractiveNode):
+    node.send(command_creator("STATE_PREPARATION"))
+    cmds = ["RX", "RZ", "RY"]
+    for cmd in cmds:
+        node.send(command_creator(cmd, argument=randint(0,255)))
+    node.send(command_creator("STATE_MEASURE"))
+    measurement = node.receive("measurement")
+    print (f"Measurement: {measurement}")
+    raise DeltaRuntimeExit
 
 

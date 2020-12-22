@@ -3,16 +3,25 @@ import subprocess
 from os import path, chmod, environ
 
 from deltalanguage.data_types import DInt, DSize, NoMessage, make_forked_return, DOptional, DBool
-from deltalanguage.wiring import DeltaBlock, DeltaGraph, template_node_factory, Interactive, PyInteractiveNode
+from deltalanguage.wiring import (DeltaBlock,
+                                  DeltaGraph,
+                                  template_node_factory,
+                                  Interactive,
+                                  PyInteractiveNode,
+                                  placeholder_node_factory)
 from deltalanguage.runtime import DeltaRuntimeExit, serialize_graph
-from deltasimulator.lib import full_build
+from deltalanguage.lib.quantum_simulators import QiskitQuantumSimulator, ProjectqQuantumSimulator
+from deltalanguage.lib.hal import command_creator, HardwareAbstractionLayerNode
+
+from deltasimulator.lib import build_graph
 
 from test._utils import (DUT1,
                          add,
                          print_then_exit,
                          print_then_exit_64_bit,
                          exit_if_true,
-                         return_1000)
+                         return_1000,
+                         send_gates_list_then_exit)
 import tempfile
 
 ExpT, ExpVal = make_forked_return({'num_out': DInt(DSize(32)), 'val_out': DBool()})
@@ -23,7 +32,7 @@ class TestExecution(unittest.TestCase):
         """Build SystemC program and executes them in temp directory."""
         _, program = serialize_graph(graph, name="dut")
         with tempfile.TemporaryDirectory() as build_dir:
-            full_build(program, main_cpp=path.join(path.dirname(__file__), "main.cpp"),
+            build_graph(program, main_cpp=path.join(path.dirname(__file__), "main.cpp"),
             build_dir=build_dir)
             # Setting the permission to run the file
             chmod(f"{build_dir}/main", 0o777)
@@ -142,6 +151,34 @@ class TestExecution(unittest.TestCase):
             print_then_exit(c2.o1)
 
         self.check_executes(test_graph)
+
+    def test_loop_with_ProjectQ(self):
+        with DeltaGraph("test_loop_with_ProjectQ") as test_graph:
+            # set up placeholders
+            ph_hal_result = placeholder_node_factory()
+
+            int_func = send_gates_list_then_exit.call(measurement=ph_hal_result)
+
+            projectQ = HardwareAbstractionLayerNode(ProjectqQuantumSimulator(register_size=2)).accept_command(command=int_func)
+            # tie up placeholders
+            ph_hal_result.specify_by_node(projectQ)
+
+        self.check_executes(test_graph)
+
+    @unittest.skip("This test still requires investigations on teardown")
+    def test_loop_with_Qiskit(self):
+        with DeltaGraph("test_loop_with_Qiskit") as test_graph:
+            # set up placeholders
+            ph_hal_result = placeholder_node_factory()
+
+            int_func = send_gates_list_then_exit.call(measurement=ph_hal_result)
+
+            qiskit = HardwareAbstractionLayerNode(QiskitQuantumSimulator(register_size=2, seed=2)).accept_command(command=int_func)
+            # tie up placeholders
+            ph_hal_result.specify_by_node(qiskit)
+
+        self.check_executes(test_graph)
+
 
     def tearDown(self):
         DeltaGraph.clean_stack()

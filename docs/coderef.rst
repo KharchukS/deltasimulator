@@ -1,16 +1,8 @@
 API Reference
 =============
 
-deltasimulator.build_tools
+deltasimulator.lib
 --------------------------
-.. automodule:: deltasimulator.build_tools
+.. automodule:: deltasimulator.lib
     :members:
-    :private-members:
-    :imported-members:
 
-deltasimulator.build_tools.environments
----------------------------------------
-.. automodule:: deltasimulator.build_tools.environments
-    :members:
-    :private-members:
-    :imported-members:

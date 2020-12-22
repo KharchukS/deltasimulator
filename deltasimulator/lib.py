@@ -6,9 +6,28 @@ from deltasimulator.build_tools.environments import (PythonatorEnv,
                                                      WiringEnv,
                                                      CPPEnv,
                                                      HostEnv)
+from capnp.lib.capnp import _DynamicStructBuilder
 
-def build_program(program):
-    """ This function creates wiring and object files for the full build """
+def generate_wiring(program: _DynamicStructBuilder) -> dict:
+    """Creates the wiring of the nodes defined in a program.
+
+    Parameters
+    ----------
+    program: _DynamicStructBuilder
+        A Deltaflow serialized graph
+    Returns
+    -------
+    node_bodies: list
+        the bodies of the extracted nodes
+    node_inits: list
+        all the rom files found in the migen nodes, extracted as strings.
+        This solves an incompatibility between some migen generated outputs
+        and verilator.
+    wiring: dict
+        the wiring of the graph. This can be used to generate a SystemC top
+        level to wire the graph
+    """
+
     node_headers = []
     node_bodies = []
     node_modules = []
@@ -55,13 +74,35 @@ def build_program(program):
 
     return node_bodies, node_inits, wiring
 
-async def _wait_for_build(wiring):
-    """ This function will wait for the artifacts to be built """
+async def _wait_for_build(wiring: dict):
+    """Waits for all the objects associated with the wiring to be
+    ready.
+
+    Parameters
+    ----------
+    wiring
+        A wired graph
+    """
+
     for comp in wiring:
         _ = await asyncio.wait_for(wiring[comp].data, timeout=None)
 
 def _copy_artifacts(main, inits, node_bodies, destination):
-    """ This function copies all the built artifacts to a given destination """
+    """Copies all the required artifacts into a new destination
+
+    Parameters
+    ----------
+    main
+        the main file (main.cpp) for the graph
+    inits
+        the memory configuration files
+    node_bodies
+        the content of the nodes
+    destination
+        the folder to copy the artifacts into. Note: created if it does
+        not exists
+    """
+
     for init in inits:
         with open(path.join(destination, init.name), "wb") as f:
             write(init, f)
@@ -74,7 +115,20 @@ def _copy_artifacts(main, inits, node_bodies, destination):
         write(main, f)
 
 
-def _compile_and_link(program_name, wiring, main_cpp):
+def _compile_and_link(program_name: str, wiring: list, main_cpp: str):
+    """Compiles and link the graph together with a provided top
+    level file
+
+    Parameters
+    ----------
+    program_name: str
+        the name of the program to generate
+    wiring: list
+        a wired graph generated via cog
+    main_cpp: str
+        the top level main file
+    """
+
     asyncio.run(_wait_for_build(wiring))
     _main_h = wiring[program_name + ".h"]
     _main_a = wiring[program_name + ".a"]
@@ -91,12 +145,63 @@ def _compile_and_link(program_name, wiring, main_cpp):
     return main
 
 
-def full_build(program, main_cpp, build_dir):
-    """ This function compiles a program in a specified directory. 
-    A top level wrapper need to be provided. """
-    node_bodies, node_inits, wiring = build_program(program)
+def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
+    """ Generates an executable to be stored in a build
+    directory.
+
+    Parameters
+    ----------
+    program: _DynamicStructBuilder
+        The Deltaflow program to be converted into SystemC.
+    main_cpp: str
+        SystemC top level file that starts the SystemC simulation and
+        defines an implementation for eventual templatedNodes.
+    build_dir: str
+        The target directory in which to store the output.
+
+    Examples
+    --------
+    The *main.cpp* (other filenames are allowed) should at least contain the
+    following:
+
+    .. code-block:: c++
+
+        #include <systemc>
+        #include <Python.h>
+        #include "dut.h"
+        using namespace sc_dt;
+        int sc_main(__attribute__(int argc, char** argv) {
+            Py_Initialize();
+            sc_trace_file *Tf = nullptr;
+            sc_clock clk("clk", sc_time(1, SC_NS));
+            sc_signal<bool> rst;
+            // Dut is the name you
+            Dut dut("Dut", Tf);
+            dut.clk.bind(clk);
+            dut.rst.bind(rst);
+            rst.write(0);
+            sc_start(1000, SC_NS);
+            Py_Finalize();
+            return 0;
+        }
+
+
+    With the associate Python code:
+
+    .. code-block:: python
+
+        from deltalanguage.runtime import serialize_graph
+        from deltasimulator.lib import build_graph
+        ...
+        _, program = serialize_graph(graph, name="dut")
+        build_graph(program, main_cpp="main.cpp",
+             build_dir="/workdir/build")
+        ...
+
+    """
+
+    node_bodies, node_inits, wiring = generate_wiring(program)
     main = _compile_and_link(program.name, wiring, main_cpp)
     _copy_artifacts(main, node_inits, node_bodies, build_dir)
-
 
 
