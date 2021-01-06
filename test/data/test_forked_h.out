@@ -161,7 +161,7 @@ template <class T> SC_MODULE(PythonToMigen) {
 
     SC_CTOR(PythonToMigen) {
         SC_METHOD(run);
-        sensitive << clk;
+        sensitive << clk.pos();
     }
 };
 
@@ -189,7 +189,7 @@ template <class T> SC_MODULE(MigenToPython) {
 
     SC_CTOR(MigenToPython) {
         SC_THREAD(run);
-        sensitive << clk;
+        sensitive << clk.pos();
     }
 };
 

@@ -472,9 +472,7 @@ class PythonatorEnv(CPPEnv):
                 for port in top_p.inPorts:
                     port_type = self.load_port_type(port)
                     if num_ports > 1:
-                        cog.outl(f"    if (ins.compare(\\"{port.name}\\")) {{")
-                    else :
-                        cog.outl(f"    if (true) {{")
+                        cog.outl(f"    if (ins == \\"{port.name}\\") {{")
                     if port.optional:
                         cog.outl(f"      retval = singleton->{self.get_sysc_port_name(port)}->nb_read(bv_{self.get_sysc_port_name(port)});")
                         cog.outl("      if (retval == false){")
@@ -483,8 +481,8 @@ class PythonatorEnv(CPPEnv):
                     else :
                         cog.outl(f"      singleton->{self.get_sysc_port_name(port)}->read(bv_{self.get_sysc_port_name(port)});")
                     cog.outl(f"return PyObject_CallMethodObjArgs(singleton->type_{self.get_sysc_port_name(port)}, PyUnicode_FromString(\\"unpack\\"), PyBytes_FromStringAndSize(bv_{self.get_sysc_port_name(port)}.to_string().c_str(), {port_type.size}), NULL);")
-
-                    cog.outl("}")
+                    if num_ports > 1:
+                        cog.outl("}")
                 cog.outl('    PyErr_SetString(PyExc_TypeError, "Unrecognized argument");')
                 cog.outl('    return (PyObject *) NULL;')
                 cog.outl("}")
@@ -498,10 +496,15 @@ class PythonatorEnv(CPPEnv):
                 cog.outl('    }')
                 cog.outl('    singleton->wait(1, SC_NS);')
                 cog.outl('    std::string outs (outport);')
+
+                num_ports = len(top_p.outPorts)
                 for port in top_p.outPorts:
-                    cog.outl(f"    if (outs.compare(\\"{port.name}\\")){{")
-                    cog.outl(f"            singleton->{self.get_sysc_port_name(port)}->write(data);")
-                    cog.outl("    }")
+                    if num_ports > 1:
+                        cog.outl(f"    if (outs == \\"{port.name}\\"){{")
+                        cog.outl(f"            singleton->{self.get_sysc_port_name(port)}->write(data);")
+                        cog.outl("    }")
+                    else:
+                        cog.outl(f"    singleton->{self.get_sysc_port_name(port)}->write(data);")
                 cog.outl('    return Py_None;')
                 cog.outl("}")
         ]]]*/
@@ -569,6 +572,8 @@ class PythonatorEnv(CPPEnv):
                         cog.outl("    if (PyErr_ExceptionMatches(this->pExit)) {")
                         cog.outl("        PyErr_Clear();")
                         cog.outl("        sc_stop();")
+                        if body_type is not PyInteractiveBody:
+                            cog.outl("        break;")
                         cog.outl("    } else {")
                         cog.outl("        PyErr_Print();")
                         cog.outl("        PyErr_Clear();")

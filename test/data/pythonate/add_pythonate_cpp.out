@@ -90,6 +90,7 @@ void Add_2_module::body(){
             if (PyErr_ExceptionMatches(this->pExit)) {
                 PyErr_Clear();
                 sc_stop();
+                break;
             } else {
                 PyErr_Print();
                 PyErr_Clear();

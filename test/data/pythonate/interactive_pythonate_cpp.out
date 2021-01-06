@@ -104,15 +104,15 @@ sc_dt::sc_bv<32> bv_sysc_opt;
         return NULL;
     }
     std::string ins (inport);
-    if (ins.compare("num")) {
+    if (ins == "num") {
       singleton->sysc_num->read(bv_sysc_num);
 return PyObject_CallMethodObjArgs(singleton->type_sysc_num, PyUnicode_FromString("unpack"), PyBytes_FromStringAndSize(bv_sysc_num.to_string().c_str(), 32), NULL);
 }
-    if (ins.compare("val")) {
+    if (ins == "val") {
       singleton->sysc_val->read(bv_sysc_val);
 return PyObject_CallMethodObjArgs(singleton->type_sysc_val, PyUnicode_FromString("unpack"), PyBytes_FromStringAndSize(bv_sysc_val.to_string().c_str(), 32), NULL);
 }
-    if (ins.compare("opt")) {
+    if (ins == "opt") {
       retval = singleton->sysc_opt->nb_read(bv_sysc_opt);
       if (retval == false){
           return Py_None;
@@ -131,9 +131,7 @@ PyObject* Pythonate_Interactive_3_module::sc_send(PyObject *self, PyObject *args
     }
     singleton->wait(1, SC_NS);
     std::string outs (outport);
-    if (outs.compare("")){
-            singleton->sysc_return->write(data);
-    }
+    singleton->sysc_return->write(data);
     return Py_None;
 }
 

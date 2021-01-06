@@ -28,7 +28,7 @@ int sc_main(__attribute__((unused)) int argc, __attribute__((unused)) char** arg
   rst.write(0);
   
   try {
-    sc_start(1000, SC_NS);
+    sc_start();
     cout << "Completed!" << endl;
   } catch (const std::exception &exc){
     cout << "exiting on error" << endl;

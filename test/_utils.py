@@ -99,6 +99,34 @@ class DUT1(MigenNodeTemplate):
             )
         )
 
+class MigenIncrementer(MigenNodeTemplate):
+
+    def migen_body(self, template):
+        # I/O:
+        i1 = template.add_pa_in_port("i1", DOptional(int))
+        o1 = template.add_pa_out_port("o1", int)
+
+        self.comb += (
+            i1.ready.eq(1),
+        )
+
+        started = migen.Signal(1)
+
+        self.sync += migen.If(
+                i1.valid == 1,
+                o1.valid.eq(1),
+                o1.data.eq(i1.data+1)
+            ).Else(
+                o1.data.eq(0),
+                migen.If (started == 0,
+                    o1.valid.eq(1),
+                    started.eq(1)
+                ).Else (
+                    o1.valid.eq(0)
+                )
+            )
+
+
 @Interactive(in_params={"measurement": DUInt(DSize(32))}, out_type=DUInt(DSize(32)),
     name="interactive_simple")
 def send_gates_list_then_exit(node: PyInteractiveNode):

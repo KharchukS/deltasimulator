@@ -366,7 +366,7 @@ class WiringEnv(CPPEnv):
 
             SC_CTOR(PythonToMigen) {
                 SC_METHOD(run);
-                sensitive << clk;
+                sensitive << clk.pos();
             }
         };
 
@@ -394,7 +394,7 @@ class WiringEnv(CPPEnv):
 
             SC_CTOR(MigenToPython) {
                 SC_THREAD(run);
-                sensitive << clk;
+                sensitive << clk.pos();
             }
         };
 
