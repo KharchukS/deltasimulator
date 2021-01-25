@@ -149,9 +149,9 @@ class Splitter_5_module : public sc_module
 private:
     PyObject *pBody, *pName, *pModule, *pyC, *pExit;
     uint64_t no_ins, no_outs;
-    PyObject* type_sysc_in;
-    PyObject* get_sysc_in();
-    sc_dt::sc_bv<32> bits_sysc_in;
+    PyObject* type_sysc_to_split;
+    PyObject* get_sysc_to_split();
+    sc_dt::sc_bv<32> bits_sysc_to_split;
     PyObject* type_sysc_out0;
     sc_dt::sc_bv<32> bits_sysc_out0;
     void set_sysc_out0();
@@ -160,7 +160,7 @@ private:
     void set_sysc_out1();
 public:
     uint64_t no_inputs, no_outputs;
-    sc_fifo<sc_dt::sc_bv<32>>* sysc_in;
+    sc_fifo<sc_dt::sc_bv<32>>* sysc_to_split;
     sc_fifo<sc_dt::sc_bv<32>>* sysc_out0;
     sc_fifo<sc_dt::sc_bv<32>>* sysc_out1;
     int get_no_inputs() const;
@@ -315,7 +315,7 @@ splitter_5("splitter_5")
     node_1.sysc_return = &wire_1_0_2_1;
     add_2.sysc_b = &wire_1_0_2_1;
     add_2.sysc_return = &wire_2_0_5_0;
-    splitter_5.sysc_in = &wire_2_0_5_0;
+    splitter_5.sysc_to_split = &wire_2_0_5_0;
     add_3.sysc_return = &wire_3_0_4_0;
     print_then_exit_4.sysc_n = &wire_3_0_4_0;
     splitter_5.sysc_out0 = &wire_5_0_3_0;

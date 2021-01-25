@@ -1,4 +1,3 @@
-// This shows a simple example of how to archive the build output artifacts.
 node('linux') {
     stage('Checkout') {
         cleanWs()
@@ -35,16 +34,16 @@ node('linux') {
     }
 
     stage('Linting') {
-        warnError('Error occured, continue to next stage.') {
+        warnError('Error occurred, continue to next stage.') {
             sh 'make pylint'
             archiveArtifacts artifacts: 'pylint.log'
-            recordIssues(tools: [pyLint(name: 'Linting', 
+            recordIssues(tools: [pyLint(name: 'Linting',
                                         pattern: 'pylint.log')])
         }
     }
 
     stage('Style') {
-        warnError('Error occured, continue to next stage.') {
+        warnError('Error occurred, continue to next stage.') {
             sh 'make pycodestyle'
             archiveArtifacts artifacts: 'pycodestyle.log'
             recordIssues(tools: [pep8(name: 'Style',
@@ -53,30 +52,9 @@ node('linux') {
     }
 
     stage('Tests') {
-        warnError('Error occured, catching exception and continuing to store test results.') {
+        warnError('Error occurred, catching exception and continuing to store test results.') {
             sh 'make test'
         }
-    }
-
-    if(env.BRANCH_NAME == 'release'){
-
-        stage("Upload"){
-            withCredentials([
-                usernamePassword(credentialsId: 'PrivatePyPICreds',
-                    usernameVariable: 'USERNAME',
-                    passwordVariable: 'PASSWORD')
-            ]) {
-                sh 'make upload-package user=$USERNAME pass=$PASSWORD'
-            }
-        }
-
-    } else if (env.CHANGE_ID || env.BRANCH_NAME == 'dev'){
-        // On any pull request or a commit on dev branch
-
-        stage('Package') {
-            sh 'make test-package'
-        }
-
     }
 
     stage('Clean container') {

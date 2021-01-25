@@ -29,25 +29,27 @@ class TestWiring(unittest.TestCase):
         template nodes.
         """
         built = {}
-        for comp in wiring:
-            built[comp] = await asyncio.wait_for(wiring[comp].data, timeout=None)
-        # Check binary files have been generated
-        self.assertTrue(f"{prog_name}.a" in built)
-        if f"{prog_name}.o" in wiring:
-            self.assertTrue(f"{prog_name}.o" in built)
-        # Now check all the other files
-        mdiff = self.maxDiff
-        self.maxDiff = None
         if f"{prog_name}.cpp" in wiring:
+            built[f"{prog_name}.cpp"] = await asyncio.wait_for(wiring[f"{prog_name}.cpp"].data, timeout=None)
             with open(path.join("test", "data", f"{prog_name}_cpp.out"),
                       "rb") as cpp_file:
                 ref = cpp_file.read().decode("utf-8")
                 gen = built[f"{prog_name}.cpp"].decode("utf-8")
                 self.assertMultiLineEqual(gen, ref)
+        built[f"{prog_name}.a"] = await asyncio.wait_for(wiring[f"{prog_name}.a"].data,
+                                                         timeout=None)
+        built[f"{prog_name}.h"] = await asyncio.wait_for(wiring[f"{prog_name}.h"].data, timeout=None)
+        mdiff = self.maxDiff
+        self.maxDiff = None
         with open(path.join("test", "data", f"{prog_name}_h.out"), "rb") as h_file:
             ref = h_file.read().decode("utf-8")
             gen = built[f"{prog_name}.h"].decode("utf-8")
             self.assertMultiLineEqual(gen, ref)
+        if f"{prog_name}.o" in wiring:
+            built[f"{prog_name}.o"] = await asyncio.wait_for(wiring[f"{prog_name}.o"].data, timeout=None)
+        if f"{prog_name}" in wiring:
+            built[f"{prog_name}"] = await asyncio.wait_for(wiring[f"{prog_name}"].data, timeout=None)
+        self.maxDiff = mdiff
         self.maxDiff = mdiff
 
     def test_add(self):

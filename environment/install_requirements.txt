@@ -2,4 +2,4 @@
 cogapp>=3.0
 dill>=0.3
 find_libpython>=0.1
-deltalanguage==0.3.5
+deltalanguage==0.4.1

@@ -4,6 +4,7 @@
 # Development
 autopep8
 nose
+nose-randomly
 nosexcover
 pylint
 

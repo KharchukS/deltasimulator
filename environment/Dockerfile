@@ -45,9 +45,7 @@ RUN pip install -U pip-licenses
 # despite being one of projectq's dependencies
 RUN pip install --no-cache-dir pybind11
 RUN pip install --no-cache-dir -r /opt/dev_requirements.txt
-RUN pip install --no-cache-dir \
-                --extra-index-url 'https://test.pypi.org/simple/' \
-                -r /opt/install_requirements.txt
+RUN pip install --no-cache-dir -r /opt/install_requirements.txt
 
 # The image above can be stored on the Docker Registry for quicker rebuild.
 # See Anian's repo for inspiration.

@@ -171,6 +171,7 @@ def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
         #include "dut.h"
         using namespace sc_dt;
         int sc_main(__attribute__(int argc, char** argv) {
+            Py_UnbufferedStdioFlag = 1;
             Py_Initialize();
             sc_trace_file *Tf = nullptr;
             sc_clock clk("clk", sc_time(1, SC_NS));
@@ -181,7 +182,6 @@ def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
             dut.rst.bind(rst);
             rst.write(0);
             sc_start(1000, SC_NS);
-            Py_Finalize();
             return 0;
         }
 
@@ -198,10 +198,19 @@ def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
              build_dir="/workdir/build")
         ...
 
+    .. todo::
+
+        Setting stdio/stderr to not buffer is required because `Py_Finalize`
+        can cause some memory errors (with eg the Qiskit HAL test).
+        Is there a fix for this?
+
     """
 
     node_bodies, node_inits, wiring = generate_wiring(program)
     main = _compile_and_link(program.name, wiring, main_cpp)
     _copy_artifacts(main, node_inits, node_bodies, build_dir)
+    for file in program.files:
+        with open(path.join(build_dir, file.name), "wb") as support_file:
+            support_file.write(file.content)
 
 

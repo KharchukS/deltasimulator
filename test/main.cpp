@@ -16,6 +16,7 @@ int sc_main(__attribute__((unused)) int argc, __attribute__((unused)) char** arg
   sc_core::sc_report_handler::set_actions( "/IEEE_Std_1666/deprecated",
                                            sc_core::SC_DO_NOTHING );  
 
+  Py_UnbufferedStdioFlag = 1;
   Py_Initialize();
 
   sc_trace_file *Tf = nullptr;
@@ -33,9 +34,7 @@ int sc_main(__attribute__((unused)) int argc, __attribute__((unused)) char** arg
   } catch (const std::exception &exc){
     cout << "exiting on error" << endl;
     cerr << exc.what();
-    Py_Finalize();
     throw;
   }
-  Py_Finalize();
   return 0;
 }

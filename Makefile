@@ -150,7 +150,8 @@ test-nose: container ## Run the test suite via nose
 	--cover-erase \
 	--cover-package=${PROJECTNAME} \
 	--verbose \
-	--detailed-errors
+	--detailed-errors \
+	--with-randomly
 
 .PHONY: test-unit
 test-unit: container ## Run the test suite via unittest
@@ -288,7 +289,8 @@ dev-test-nose: ## Run the test suite via nose inside the VSCode devcontainer
 	--cover-erase \
 	--cover-package=${PROJECTNAME} \
 	--verbose \
-	--detailed-errors
+	--detailed-errors \
+	--with-randomly
 
 .PHONY: dev-test-unit
 dev-test-unit: ## Run the test suite via unittest inside the VSCode devcontainer

@@ -7,6 +7,7 @@
 using namespace sc_core;
 using namespace std;
 int sc_main(int argc, char* argv[]) {
+    Py_UnbufferedStdioFlag = 1;
     Py_Initialize();
     // Adds required components: trace, clock, reset
     sc_trace_file *Tf = sc_create_vcd_trace_file("test_migen_wiring");
@@ -30,11 +31,9 @@ int sc_main(int argc, char* argv[]) {
             else sc_start();
         }
         cout << "exiting on timeout" << endl;
-        Py_Finalize();
         sc_close_vcd_trace_file(Tf);
     } catch (...) {
         cout << "exiting on error" << endl;
-        Py_Finalize();
         sc_close_vcd_trace_file(Tf);
         throw;
     }

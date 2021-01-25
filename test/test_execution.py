@@ -1,6 +1,7 @@
 import unittest
 import subprocess
 from os import path, chmod, environ
+import shutil
 from tempfile import TemporaryDirectory
 
 from deltalanguage.data_types import DInt, DSize, NoMessage, make_forked_return, DOptional, DBool
@@ -30,9 +31,13 @@ ExpT, ExpVal = make_forked_return({'num_out': DInt(DSize(32)), 'val_out': DBool(
 
 class TestExecution(unittest.TestCase):
 
-    def check_executes(self, graph, expect: str=None):
+    def check_executes(self, graph, expect: str=None, files=[]):
         """Build SystemC program and executes them in temp directory."""
-        _, program = serialize_graph(graph, name="dut")
+        _, program = serialize_graph(graph, name="dut", files=files)
+        self.files = files
+        for file in files:
+            shutil.move(file, f"{file}_temp")
+        shutil.rmtree("__pycache__", ignore_errors=True)
         with TemporaryDirectory() as build_dir:
             build_graph(program, main_cpp=path.join(path.dirname(__file__), "main.cpp"),
             build_dir=build_dir)
@@ -222,7 +227,6 @@ class TestExecution(unittest.TestCase):
 
         self.check_executes(test_graph, "Measurement: 429490176[0-1]")
 
-    @unittest.skip("This test still requires investigations on teardown")
     def test_loop_with_Qiskit(self):
         with DeltaGraph("test_loop_with_Qiskit") as test_graph:
             # set up placeholders
@@ -236,7 +240,6 @@ class TestExecution(unittest.TestCase):
 
         self.check_executes(test_graph)
 
-
     def test_state_saver(self):
         store = StateSaver(int)
         with DeltaGraph("test_state_saver") as test_graph:
@@ -244,9 +247,43 @@ class TestExecution(unittest.TestCase):
             store.save_and_exit(c1.o1)
         self.check_executes(test_graph)
 
+    def test_read_file(self):
+        @DeltaBlock(allow_const=False)
+        def read_txt() -> NoMessage:
+            with open(".gitignore", "r") as txt_file:
+                print(txt_file.read())
+            raise DeltaRuntimeExit
+        with DeltaGraph("test_read_file") as test_graph:
+            read_txt()
+        self.check_executes(test_graph, files=[".gitignore"])
+
+    def test_read_multiple_files(self):
+        @DeltaBlock(allow_const=False)
+        def read_txt() -> NoMessage:
+            with open(".gitignore", "r") as txt_file:
+                print(txt_file.read())
+            with open("CODE_OF_CONDUCT.md", "r") as txt_file:
+                print(txt_file.read())
+            raise DeltaRuntimeExit
+        with DeltaGraph("test_read_file") as test_graph:
+            read_txt()
+        self.check_executes(test_graph, files=[".gitignore", "CODE_OF_CONDUCT.md"])
+
+    def test_python_file(self):
+        import code_for_test
+        @DeltaBlock(allow_const=False)
+        def run_code() -> NoMessage:
+            print(code_for_test.x)
+            raise DeltaRuntimeExit
+        with DeltaGraph("test_python_file") as test_graph:
+            run_code()
+        self.check_executes(test_graph, expect="5", files=["code_for_test.py"])
+
 
     def tearDown(self):
         DeltaGraph.clean_stack()
+        for file in self.files:
+            shutil.move(f"{file}_temp", file)
 
 
 if __name__ == "__main__":

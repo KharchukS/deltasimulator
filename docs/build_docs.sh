@@ -15,10 +15,7 @@ ln -s /usr/bin/pip3 /usr/bin/pip
 pip install --upgrade pip
 pip install --no-cache-dir pybind11
 pip install --no-cache-dir -r ./environment/dev_requirements.txt
-pip install --no-cache-dir \
-   --trusted-host 51.132.8.186 \
-   --extra-index-url 'http://51.132.8.186:8080' \
-   -r ./environment/install_requirements.txt
+pip install --no-cache-dir -r ./environment/install_requirements.txt
 
 export PYTHONPATH=${PYTHONPATH}:/workdir
 echo ${PYTHONPATH}
@@ -29,7 +26,7 @@ echo ${PYTHONPATH}
 # add it to DOCSVERSIONS following a whitespace
 # Make sure dev is the last one as it has the latest version of conf.py
 # TODO: automate this process
-DOCSVERSIONS="v0.3.5 dev"
+DOCSVERSIONS="v0.4.0 dev"
 export DOCSVERSIONS=${DOCSVERSIONS}
 # This variable is defined in docs/Makefile
 # TODO: remover redundant repetition

@@ -217,7 +217,7 @@ class WiringEnv(CPPEnv):
                 self._template_to_py.append(wire)
             elif (src_body_type == "template") and (dest_body_type == "migen"):
                 self._template_to_migen.append(wire)
-        if num_const_wires == len(capnp_graph):
+        if num_const_wires == len(capnp_graph) and num_const_wires > 0:
             raise RuntimeError("Graph cannot consist of only constant nodes.")
 
     async def _make_main(self):
@@ -245,6 +245,7 @@ class WiringEnv(CPPEnv):
         using namespace sc_core;
         using namespace std;
         int sc_main(int argc, char* argv[]) {
+            Py_UnbufferedStdioFlag = 1;
             Py_Initialize();
             // Adds required components: trace, clock, reset
             /*[[[cog
@@ -274,11 +275,9 @@ class WiringEnv(CPPEnv):
                     else sc_start();
                 }
                 cout << "exiting on timeout" << endl;
-                Py_Finalize();
                 sc_close_vcd_trace_file(Tf);
             } catch (...) {
                 cout << "exiting on error" << endl;
-                Py_Finalize();
                 sc_close_vcd_trace_file(Tf);
                 throw;
             }

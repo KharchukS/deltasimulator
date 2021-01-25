@@ -32,13 +32,7 @@ async def multiple_waits(flags):
 
     flags : list
         A list of :class:`Coroutine` objects to wait for.
-
-
-    .. note::
-        All coroutines are run in parallel.
     """
-    try:
-        await asyncio.gather(*flags)
-    except RuntimeError:
-        pass
+    for flag in flags:
+        await wait(flag)
     return
