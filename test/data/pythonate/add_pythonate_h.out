@@ -1,10 +1,10 @@
+#ifndef __ADD_2_MODULE__
+#define __ADD_2_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
 #include "Python.h"
-
-#ifndef __ADD_2_MODULE__
-#define __ADD_2_MODULE__
 
 class Add_2_module : public sc_module
 {

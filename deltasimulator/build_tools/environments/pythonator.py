@@ -1,7 +1,8 @@
 import asyncio
-from os import path
-import sysconfig
 from io import StringIO
+from os import path
+import re
+import sysconfig
 import textwrap
 
 import dill
@@ -120,7 +121,7 @@ class PythonatorEnv(CPPEnv):
             + "_module"
 
 
-    async def _make_py(self, top_p, df_body):
+    async def _make_py(self, top_p, df_body, body_type):
         """Makes Python script for the node.
 
         The Python script contains the node's body as well as data types
@@ -136,7 +137,6 @@ class PythonatorEnv(CPPEnv):
         bool
             Returns True on completion.
         """
-        body_type = type(dill.loads(df_body))
 
         # df_ prefix to variables used to avoid namespace clashes with cog
         py_tmpl = """
@@ -230,6 +230,9 @@ class PythonatorEnv(CPPEnv):
         """
 
         h_tmpl = """\
+        //[[[cog cog.outl(f"#ifndef __{top_p.name.upper()}_MODULE__"); cog.outl(f"#define __{top_p.name.upper()}_MODULE__") ]]]
+        //[[[end]]]
+
         #include <string>
         #include <systemc>
         using namespace sc_core;
@@ -237,9 +240,6 @@ class PythonatorEnv(CPPEnv):
             if body_type is not PyConstBody:
                 cog.outl('#include "Python.h"')
         ]]]*/
-        //[[[end]]]
-
-        //[[[cog cog.outl(f"#ifndef __{top_p.name.upper()}_MODULE__"); cog.outl(f"#define __{top_p.name.upper()}_MODULE__") ]]]
         //[[[end]]]
 
         //[[[cog cog.outl(f"class {module_name} : public sc_module") ]]]
@@ -701,13 +701,19 @@ class PythonatorEnv(CPPEnv):
             body = self._bodies[top_p.body].python.dillImpl
         if "interactive" in body_class:
             body = self._bodies[top_p.body].interactive.dillImpl
-        body_type = type(dill.loads(body))
+        body_types = {b"PyConstBody": PyConstBody,
+                      b"PyInteractiveBody": PyInteractiveBody}
+        match = re.search(b"Py(Const|Interactive)Body", body)
+        if match:
+            body_type = body_types[match.group(0)]
+        else:
+            body_type = None
         make_cpp = self._make_cpp(top_p, body_type)
         cpp = self._get_cpp(top_p, after=make_cpp)
         make_h = self._make_h(top_p, body_type)
         h = self._get_h(top_p, after=make_h)
         if body_type is not PyConstBody:
-            make_py = self._make_py(top_p, body)
+            make_py = self._make_py(top_p, body, body_type)
             py = self._get_py(top_p, after=make_py)
         build_objects = self._build_objects(top_p, after=[make_cpp, make_h])
         binary = self._get_binary(top_p, after=build_objects)

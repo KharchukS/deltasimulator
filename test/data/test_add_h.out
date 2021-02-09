@@ -1,9 +1,9 @@
+#ifndef __NODE_0_MODULE__
+#define __NODE_0_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
-
-#ifndef __NODE_0_MODULE__
-#define __NODE_0_MODULE__
 
 class Node_0_module : public sc_module
 {
@@ -20,12 +20,12 @@ public:
     Node_0_module(sc_module_name name);
 };
 #endif
+#ifndef __NODE_1_MODULE__
+#define __NODE_1_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
-
-#ifndef __NODE_1_MODULE__
-#define __NODE_1_MODULE__
 
 class Node_1_module : public sc_module
 {
@@ -42,13 +42,13 @@ public:
     Node_1_module(sc_module_name name);
 };
 #endif
+#ifndef __ADD_2_MODULE__
+#define __ADD_2_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
 #include "Python.h"
-
-#ifndef __ADD_2_MODULE__
-#define __ADD_2_MODULE__
 
 class Add_2_module : public sc_module
 {
@@ -76,13 +76,13 @@ public:
     Add_2_module(sc_module_name name);
 };
 #endif
+#ifndef __PRINT_THEN_EXIT_3_MODULE__
+#define __PRINT_THEN_EXIT_3_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
 #include "Python.h"
-
-#ifndef __PRINT_THEN_EXIT_3_MODULE__
-#define __PRINT_THEN_EXIT_3_MODULE__
 
 class Print_Then_Exit_3_module : public sc_module
 {

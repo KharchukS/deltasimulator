@@ -1,12 +1,12 @@
+#ifndef __PYTHONATE_INTERACTIVE_5_MODULE__
+#define __PYTHONATE_INTERACTIVE_5_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
 #include "Python.h"
 
-#ifndef __PYTHONATE_INTERACTIVE_3_MODULE__
-#define __PYTHONATE_INTERACTIVE_3_MODULE__
-
-class Pythonate_Interactive_3_module : public sc_module
+class Pythonate_Interactive_5_module : public sc_module
 {
 private:
     PyObject *pBody, *pName, *pModule, *pyC, *pExit;
@@ -16,7 +16,7 @@ private:
     static PyObject* PyInit_sysc(void);
     static PyMethodDef SysCMethods[];
     static PyModuleDef SysCModule;
-    static Pythonate_Interactive_3_module* singleton;
+    static Pythonate_Interactive_5_module* singleton;
     void init();
     void store();
     void run();
@@ -42,7 +42,7 @@ public:
     int get_no_inputs() const;
     int get_no_outputs() const;
     void body();
-    SC_HAS_PROCESS(Pythonate_Interactive_3_module);
-    Pythonate_Interactive_3_module(sc_module_name name);
+    SC_HAS_PROCESS(Pythonate_Interactive_5_module);
+    Pythonate_Interactive_5_module(sc_module_name name);
 };
 #endif

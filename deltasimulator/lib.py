@@ -1,5 +1,9 @@
 import asyncio
 from os import path
+import subprocess
+import sys
+import zipfile
+
 from deltasimulator.build_tools import BuildArtifact, write
 from deltasimulator.build_tools.environments import (PythonatorEnv,
                                                      VerilatorEnv,
@@ -7,6 +11,7 @@ from deltasimulator.build_tools.environments import (PythonatorEnv,
                                                      CPPEnv,
                                                      HostEnv)
 from capnp.lib.capnp import _DynamicStructBuilder
+
 
 def generate_wiring(program: _DynamicStructBuilder) -> dict:
     """Creates the wiring of the nodes defined in a program.
@@ -40,7 +45,7 @@ def generate_wiring(program: _DynamicStructBuilder) -> dict:
             # and cannot be pythonated
             which_body = program.bodies[node.body].which()
 
-            if which_body in ['python', 'interactive'] :
+            if which_body in ['python', 'interactive']:
                 with PythonatorEnv(program.bodies) as env:
                     build_artifacts = env.pythonate(node)
                     node_headers.append(build_artifacts["h"])
@@ -74,6 +79,7 @@ def generate_wiring(program: _DynamicStructBuilder) -> dict:
 
     return node_bodies, node_inits, wiring
 
+
 async def _wait_for_build(wiring: dict):
     """Waits for all the objects associated with the wiring to be
     ready.
@@ -86,6 +92,7 @@ async def _wait_for_build(wiring: dict):
 
     for comp in wiring:
         _ = await asyncio.wait_for(wiring[comp].data, timeout=None)
+
 
 def _copy_artifacts(main, inits, node_bodies, destination):
     """Copies all the required artifacts into a new destination
@@ -206,11 +213,31 @@ def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
 
     """
 
+    if len(program.requirements) > 0:
+        req_path = path.join(build_dir, "requirements.txt")
+        with open(req_path, "w") as req_txt:
+            req_txt.write("\n".join(program.requirements))
+        try:
+            subprocess.run([sys.executable,
+                            '-m',
+                            'pip',
+                            'install',
+                            '-r',
+                            req_path],
+                           capture_output=True,
+                           check=True)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError("Error with installing required dependencies:",
+                               e.output) from e
     node_bodies, node_inits, wiring = generate_wiring(program)
     main = _compile_and_link(program.name, wiring, main_cpp)
     _copy_artifacts(main, node_inits, node_bodies, build_dir)
-    for file in program.files:
-        with open(path.join(build_dir, file.name), "wb") as support_file:
-            support_file.write(file.content)
-
-
+    if program.files != b'':
+        zip_name = path.join(build_dir, "df_zip.zip")
+        with open(zip_name, "wb") as zip_file:
+            zip_file.write(program.files)
+        df_zip = zipfile.ZipFile(zip_name, "r")
+        if df_zip.testzip() is None:
+            df_zip.extractall(build_dir)
+        else:
+            raise RuntimeError("Corrupted supporting files")

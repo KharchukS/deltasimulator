@@ -1,9 +1,9 @@
+#ifndef __RETURN_1000_0_MODULE__
+#define __RETURN_1000_0_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
-
-#ifndef __RETURN_1000_0_MODULE__
-#define __RETURN_1000_0_MODULE__
 
 class Return_1000_0_module : public sc_module
 {
@@ -214,13 +214,13 @@ SC_MODULE(Vcounter2_2) {
 } VL_ATTR_ALIGNED(128);
 
 #endif  // guard
+#ifndef __PRINT_THEN_EXIT_3_MODULE__
+#define __PRINT_THEN_EXIT_3_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
 #include "Python.h"
-
-#ifndef __PRINT_THEN_EXIT_3_MODULE__
-#define __PRINT_THEN_EXIT_3_MODULE__
 
 class Print_Then_Exit_3_module : public sc_module
 {

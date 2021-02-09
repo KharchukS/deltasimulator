@@ -1,9 +1,9 @@
+#ifndef __RETURN_1_0_MODULE__
+#define __RETURN_1_0_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
-
-#ifndef __RETURN_1_0_MODULE__
-#define __RETURN_1_0_MODULE__
 
 class Return_1_0_module : public sc_module
 {
@@ -20,12 +20,12 @@ public:
     Return_1_0_module(sc_module_name name);
 };
 #endif
+#ifndef __RETURN_2_1_MODULE__
+#define __RETURN_2_1_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
-
-#ifndef __RETURN_2_1_MODULE__
-#define __RETURN_2_1_MODULE__
 
 class Return_2_1_module : public sc_module
 {
@@ -42,13 +42,13 @@ public:
     Return_2_1_module(sc_module_name name);
 };
 #endif
+#ifndef __ADD_64_BIT_2_MODULE__
+#define __ADD_64_BIT_2_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
 #include "Python.h"
-
-#ifndef __ADD_64_BIT_2_MODULE__
-#define __ADD_64_BIT_2_MODULE__
 
 class Add_64_Bit_2_module : public sc_module
 {
@@ -76,13 +76,13 @@ public:
     Add_64_Bit_2_module(sc_module_name name);
 };
 #endif
+#ifndef __PRINT_THEN_EXIT_64_BIT_3_MODULE__
+#define __PRINT_THEN_EXIT_64_BIT_3_MODULE__
+
 #include <string>
 #include <systemc>
 using namespace sc_core;
 #include "Python.h"
-
-#ifndef __PRINT_THEN_EXIT_64_BIT_3_MODULE__
-#define __PRINT_THEN_EXIT_64_BIT_3_MODULE__
 
 class Print_Then_Exit_64_Bit_3_module : public sc_module
 {
