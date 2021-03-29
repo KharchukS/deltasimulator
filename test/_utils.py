@@ -1,19 +1,19 @@
 import migen
-from random import randint
 
-from deltalanguage.data_types import (DInt,
-                                      DUInt,
-                                      DOptional,
-                                      DSize,
-                                      NoMessage,
-                                      DBool)
+from deltalanguage.data_types import (Int,
+                                      UInt,
+                                      Optional,
+                                      Size,
+                                      Bool,
+                                      Void)
 from deltalanguage.runtime import DeltaRuntimeExit
 from deltalanguage.wiring import (DeltaBlock,
                                   MigenNodeTemplate,
-                                  PyInteractiveNode,
+                                  PythonNode,
                                   Interactive)
 
 from deltalanguage.lib.hal import command_creator
+
 
 @DeltaBlock()
 def add_const(a: int, b: int) -> int:
@@ -21,7 +21,7 @@ def add_const(a: int, b: int) -> int:
 
 
 @DeltaBlock()
-def const_exit(a: int) -> NoMessage:
+def const_exit(a: int) -> Void:
     raise DeltaRuntimeExit
 
 
@@ -31,23 +31,25 @@ def add(a: int, b: int) -> int:
 
 
 @DeltaBlock(allow_const=False)
-def print_then_exit(n: int) -> NoMessage:
+def print_then_exit(n: int) -> Void:
     print(n)
     raise DeltaRuntimeExit
 
 
 @DeltaBlock(allow_const=False)
-def print_then_exit_64_bit(n: DInt(DSize(64))) -> NoMessage:
+def print_then_exit_64_bit(n: Int(Size(64))) -> Void:
     print(n)
     raise DeltaRuntimeExit
 
+
 @DeltaBlock(allow_const=False)
-def exit_if_true(cond: bool) -> NoMessage:
+def exit_if_true(cond: bool) -> Void:
     if cond:
         raise DeltaRuntimeExit
 
+
 @DeltaBlock()
-def return_1000() -> DInt(DSize(32)):
+def return_1000() -> Int(Size(32)):
     return 1000
 
 
@@ -55,7 +57,7 @@ class DUT1(MigenNodeTemplate):
 
     def migen_body(self, template):
         # I/O:
-        i1 = template.add_pa_in_port("i1", DOptional(int))
+        i1 = template.add_pa_in_port("i1", Optional(int))
         o1 = template.add_pa_out_port("o1", int)
 
         # LOGIC:
@@ -73,10 +75,10 @@ class DUT1(MigenNodeTemplate):
         self.mem_out2 = migen.Signal(32)
 
         self.sync += (read_port1.adr.eq(self.counter),
-            self.mem_out1.eq(read_port1.dat_r))
+                      self.mem_out1.eq(read_port1.dat_r))
 
         self.sync += (read_port2.adr.eq(self.counter),
-            self.mem_out2.eq(read_port2.dat_r))
+                      self.mem_out2.eq(read_port2.dat_r))
 
         # DEBUGGING:
         # add any signal you want to see in debugging and printing format
@@ -99,11 +101,12 @@ class DUT1(MigenNodeTemplate):
             )
         )
 
+
 class MigenIncrementer(MigenNodeTemplate):
 
     def migen_body(self, template):
         # I/O:
-        i1 = template.add_pa_in_port("i1", DOptional(int))
+        i1 = template.add_pa_in_port("i1", Optional(int))
         o1 = template.add_pa_out_port("o1", int)
 
         self.comb += (
@@ -113,30 +116,35 @@ class MigenIncrementer(MigenNodeTemplate):
         started = migen.Signal(1)
 
         self.sync += migen.If(
-                i1.valid == 1,
-                o1.valid.eq(1),
-                o1.data.eq(i1.data+1)
-            ).Else(
-                o1.data.eq(0),
-                migen.If (started == 0,
-                    o1.valid.eq(1),
-                    started.eq(1)
-                ).Else (
-                    o1.valid.eq(0)
-                )
+            i1.valid == 1,
+            o1.valid.eq(1),
+            o1.data.eq(i1.data+1)
+        ).Else(
+            o1.data.eq(0),
+            migen.If(started == 0,
+                     o1.valid.eq(1),
+                     started.eq(1)
+                     ).Else(
+                o1.valid.eq(0)
             )
+        )
 
 
-@Interactive(in_params={"measurement": DUInt(DSize(32))}, out_type=DUInt(DSize(32)),
-    name="interactive_simple")
-def send_gates_list_then_exit(node: PyInteractiveNode):
-    node.send(command_creator("STATE_PREPARATION"))
+@Interactive([("measurement", UInt(Size(32)))],
+             UInt(Size(32)),
+             name="interactive_simple")
+def send_gates_list_then_exit(node: PythonNode):
     cmds = ["RX", "RZ", "RY"]
-    for cmd in cmds:
-        node.send(command_creator(cmd, argument=randint(0,255)))
+    # for non-dererministic tests use random.randint(0, 255)
+    args = [99, 250, 11]
+
+    node.send(command_creator("STATE_PREPARATION"))
+
+    for cmd, arg in zip(cmds, args):
+        node.send(command_creator(cmd, argument=arg))
     node.send(command_creator("STATE_MEASURE"))
+
     measurement = node.receive("measurement")
-    print (f"Measurement: {measurement}")
+    print(f"Measurement: {measurement}")
+
     raise DeltaRuntimeExit
-
-

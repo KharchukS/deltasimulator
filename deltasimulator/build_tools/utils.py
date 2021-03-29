@@ -1,7 +1,10 @@
 import asyncio
-import traceback
 import logging
+import traceback
+
+
 log = logging.getLogger(__name__)
+
 
 async def wait(flag):
     """Often, we want to sequence multiple actions that need to happen
@@ -12,7 +15,6 @@ async def wait(flag):
 
     Parameters
     ----------
-
     flag : Coroutine
         The flag that we are waiting to terminate.    
     """
@@ -24,12 +26,12 @@ async def wait(flag):
         pass
     return
 
+
 async def multiple_waits(flags):
-    """Same as :meth:`wait`, but for waiting on multiple coroutines.
+    """Same as :py:func:`wait`, but for waiting on multiple coroutines.
 
     Parameters
     ----------
-
     flags : list
         A list of :class:`Coroutine` objects to wait for.
     """

@@ -452,8 +452,8 @@ class VerilatorEnv(Environment):
 
 
         .. note::
-            PyMigenNode is a subclass of PythonNode and
-            uses the same data_types for I/O ports.
+            Nodes with Migen bodies use the same data_types for
+            I/O ports as Python nodes.
             For type format see :meth:`PythonatorEnv.as_c_type`.
         """
         return f"sc_bv<{dill.loads(df_type).size}>"
@@ -465,7 +465,7 @@ class VerilatorEnv(Environment):
         Parameters
         ----------
         port
-            capnp object describing the port.
+            ``capnp`` object describing the port.
         direction : Optional[str]
             The direction of the port, by default "out"
 
@@ -503,7 +503,7 @@ class VerilatorEnv(Environment):
         Parameters
         ----------
         port
-            capnp object describing the port.
+            ``capnp`` object describing the port.
         direction : Optional[str]
             The direction of the port, by default "out"
 
@@ -525,7 +525,7 @@ class VerilatorEnv(Environment):
         Parameters
         ----------
         port
-            capnp object describing the port.
+            ``capnp`` object describing the port.
         direction : Optional[str]
             The direction of the port, by default "out"
 
@@ -547,7 +547,7 @@ class VerilatorEnv(Environment):
         Parameters
         ----------
         port
-            capnp object describing the port.
+            ``capnp`` object describing the port.
         direction : Optional[str]
             The direction of the port, by default "out"
 
@@ -569,7 +569,7 @@ class VerilatorEnv(Environment):
         Parameters
         ----------
         top_p
-            capnp object describing the Migen node.
+            ``capnp`` object describing the Migen node.
 
         Returns
         -------

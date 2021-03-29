@@ -1,19 +1,19 @@
-import cogapp
 from io import StringIO
 import textwrap
 
+import cogapp
+
 
 def cogify(template, globals=None, cog=cogapp.cogapp.Cog(), verbose=False):
-    """
-    Passes the string str through the cog template engine.
+    """Passes the string str through the cog template engine.
 
     Parameters
     ----------
     template : str
-        cog template string.
+        Cog template string.
     globals : Optional[dict]
-        dict for variable lookup within the cog template.
-        pass globals=locals() at the call site to make local names
+        Dictionary for variable lookup within the cog template.
+        Pass ``globals=locals()`` at the call site to make local names
         available to the template. Otherwise no names will be present.
     cog
         Cog instance to use: pass in a alternative if you wish to change
@@ -22,7 +22,7 @@ def cogify(template, globals=None, cog=cogapp.cogapp.Cog(), verbose=False):
     Returns
     -------
     bytes
-        a bytes object of the string encoded as utf-8.
+        Bytes object of the string encoded as ``utf-8``.
 
 
     .. note::
@@ -31,11 +31,12 @@ def cogify(template, globals=None, cog=cogapp.cogapp.Cog(), verbose=False):
         it will be fixed up.
 
     .. note::
-        cog.outl() is required for getting strings into the output area.
+        ``cog.outl()`` is required for getting strings into the output area.
 
     .. warning::
         Ensure there are no explicit newlines within a cog python block.
-        If strings with newlines are present, they break python code formatting.
+        If strings with newlines are present, they break python code
+        formatting.
     """
     if globals is None:
         globals = dict()

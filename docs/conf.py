@@ -75,6 +75,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
+    'sphinx_autodoc_typehints',
     'sphinx_copybutton',
     'sphinx_rtd_theme',
     'sphinx_toggleprompt',
@@ -264,10 +265,10 @@ rinoh_documents = [(
 today_fmt = "%B %d, %Y"
 
 # settings for EPUB
-epub_basename = 'target'
+#epub_basename = 'target'
 
-# TODO: PDF build fails
-html_context['downloads'] = list()
+# TODO: fix PDF and EPUB build if needed
+# html_context['downloads'] = list()
 # html_context['downloads'].append(
 #     (
 #         'pdf',
@@ -275,13 +276,13 @@ html_context['downloads'] = list()
 #         REPO_NAME + '-docs-' + CURRENT_VERSION + '.pdf'
 #     )
 # )
-html_context['downloads'].append(
-    (
-        'epub',
-        '/' + REPO_NAME + '/' + CURRENT_VERSION + '/' +
-        REPO_NAME + '-docs-' + CURRENT_VERSION + '.epub'
-    )
-)
+# html_context['downloads'].append(
+#     (
+#         'epub',
+#         '/' + REPO_NAME + '/' + CURRENT_VERSION + '/' +
+#         REPO_NAME + '-docs-' + CURRENT_VERSION + '.epub'
+#     )
+# )
 
 ######################## "EDIT ON GITHUB" LINKS ###############################
 

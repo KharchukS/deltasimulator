@@ -44,7 +44,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
-nosetests.xml
+testreport.xml
 coverage.xml
 *.cover
 *.py,cover
@@ -52,6 +52,7 @@ coverage.xml
 .pytest_cache/
 licenses.csv
 licenses.confluence
+trace.vcd
 
 # Translations
 *.mo
@@ -148,12 +149,6 @@ printed_graph.df
 # Local notes
 *notes.md
 */todo.*
-
-# Test artifacts
-trace.vcd
-nosetests.xml
-.coverage
-coverage.xml
 
 # Docker container ID
 container

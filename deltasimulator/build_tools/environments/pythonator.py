@@ -13,10 +13,11 @@ from .cppenv import CPPEnv
 from deltasimulator.build_tools import BuildArtifact, cogify
 from deltasimulator.build_tools.utils import multiple_waits
 
+
 class PythonatorEnv(CPPEnv):
     """Environment for generating SystemC modules of Python nodes.
 
-    :meth:`cogify` is used to automatically generate the Python, C++ and
+    :py:meth:`cogify` is used to automatically generate the Python, C++ and
     header files.
 
     Parameters
@@ -45,7 +46,6 @@ class PythonatorEnv(CPPEnv):
         output ports. As a result, these nodes do not receive any input and
         have no accompanying Python script.
     """
-
 
     def __init__(self, bodies):
         """Initialise the environment
@@ -87,7 +87,7 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         port
-            capnp object describing the port.
+            ``capnp`` object describing the port.
 
         Returns
         -------
@@ -108,7 +108,7 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         top_p
-            capnp object describing the node.
+            ``capnp`` object describing the node.
 
         Returns
         -------
@@ -120,7 +120,6 @@ class PythonatorEnv(CPPEnv):
         return "_".join([word.capitalize() for word in top_p.name.split("_")])\
             + "_module"
 
-
     async def _make_py(self, top_p, df_body, body_type):
         """Makes Python script for the node.
 
@@ -130,7 +129,7 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         top_p
-            capnp object describing the node.
+            ``capnp`` object describing the node.
 
         Returns
         -------
@@ -185,7 +184,7 @@ class PythonatorEnv(CPPEnv):
         ]]]*/
         //[[[end]]]
         """
-        body_index = top_p.body
+        body_index = top_p.bodies[0]
         body_file = path.join(self.tempdir, f"{top_p.name}.py")
         module_name = self.get_module_name(top_p)
 
@@ -199,7 +198,7 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         top_p
-            capnp object describing the node.
+            ``capnp`` object describing the node.
         after : Coroutine
             Process that needs to complete before the Python script is ready.
 
@@ -211,14 +210,14 @@ class PythonatorEnv(CPPEnv):
         return BuildArtifact(f"{top_p.name}.py", self, after=after)
 
     async def _make_h(self, top_p,
-                      body_type # pylint: disable=unused-argument
+                      body_type  # pylint: disable=unused-argument
                       ):
         """Generate the Header file for this node.
 
         Parameters
         ----------
         top_p
-            capnp object describing the node.
+            ``capnp`` object describing the node.
         body_type
             The type of body this node has. Used to check if the node is a
             constant node or not.
@@ -308,7 +307,7 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         top_p
-            capnp object describing the node.
+            ``capnp`` object describing the node.
         after : Coroutine
             The process that constructs the Header file.
 
@@ -320,14 +319,14 @@ class PythonatorEnv(CPPEnv):
         return BuildArtifact(f"{top_p.name}.h", self, after=after)
 
     async def _make_cpp(self, top_p,
-                        body_type # pylint: disable=unused-argument
+                        body_type  # pylint: disable=unused-argument
                         ):
         """Construct the node's SystemC module.
 
         Parameters
         ----------
         top_p
-            capnp object describing the node.
+            ``capnp`` object describing the node.
         body_type
             The type of body this node has. Used to check if the node is a
             constant node or not.
@@ -513,7 +512,7 @@ class PythonatorEnv(CPPEnv):
         /*[[[cog
             if body_type is not PyInteractiveBody:
                 if body_type is PyConstBody:
-                    body = dill.loads(self._bodies[top_p.body].python.dillImpl)
+                    body = dill.loads(self._bodies[top_p.bodies[0]].python.dillImpl)
                     val = body.eval()
                 for port in top_p.outPorts:
                     port_type = self.load_port_type(port)
@@ -614,11 +613,12 @@ class PythonatorEnv(CPPEnv):
             return no_outs;
         };
         """
-
         module_name = self.get_module_name(top_p)
         cpp_name = path.join(self.tempdir, f"{top_p.name}.cpp")
         with open(cpp_name, "wb") as out_file:
-            out_file.write(cogify(cpp_tmpl, globals=dict(globals(), **locals())))
+            out_file.write(cogify(cpp_tmpl,
+                                  globals=dict(globals(), **locals())))
+
         return True
 
     def _get_cpp(self, top_p, after):
@@ -628,7 +628,7 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         top_p
-            capnp object describing the node.
+            ``capnp`` object describing the node.
         after : Coroutine
             Process which builds the C++ code.
 
@@ -645,7 +645,7 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         top_p
-            capnp object describing the node. Used to get the node's name.
+            ``capnp`` object describing the node. Used to get the node's name.
         after : list
             :class:`Coroutine` objects that need to finish before the
             binary object can be built. This should include the processes
@@ -665,7 +665,7 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         top_p
-            capnp object describing the node. Used to get the node's name.
+            ``capnp`` object describing the node. Used to get the node's name.
         after : Coroutine
             Build process that needs to complete before the binary object
             is ready.
@@ -683,24 +683,27 @@ class PythonatorEnv(CPPEnv):
         Parameters
         ----------
         top_p
-            capnp object describing the node.
+            ``capnp`` object describing the node.
 
         Returns
         -------
         dict
-            A map of strings to `BuildArtifact<deltasimulator.build_tools.BuildArtifact>` objects containing different
-            parts of the node's SystemC implementation:
+            A map of strings to
+            :py:class:`BuildArtifact<deltasimulator.build_tools.BuildArtifact>`
+            objects containing different parts of the node's SystemC
+            implementation:
 
             - "cpp": the C++ file
             - "h": the header file
             - "py": the Python file (only exists if the node is not constant)
             - "o": the built binary object
         """
-        body_class = self._bodies[top_p.body].which()
+        body_class = self._bodies[top_p.bodies[0]].which()
         if "python" in body_class:
-            body = self._bodies[top_p.body].python.dillImpl
+            body = self._bodies[top_p.bodies[0]].python.dillImpl
         if "interactive" in body_class:
-            body = self._bodies[top_p.body].interactive.dillImpl
+            body = self._bodies[top_p.bodies[0]].interactive.dillImpl
+
         body_types = {b"PyConstBody": PyConstBody,
                       b"PyInteractiveBody": PyInteractiveBody}
         match = re.search(b"Py(Const|Interactive)Body", body)
@@ -708,6 +711,7 @@ class PythonatorEnv(CPPEnv):
             body_type = body_types[match.group(0)]
         else:
             body_type = None
+
         make_cpp = self._make_cpp(top_p, body_type)
         cpp = self._get_cpp(top_p, after=make_cpp)
         make_h = self._make_h(top_p, body_type)
@@ -717,6 +721,7 @@ class PythonatorEnv(CPPEnv):
             py = self._get_py(top_p, after=make_py)
         build_objects = self._build_objects(top_p, after=[make_cpp, make_h])
         binary = self._get_binary(top_p, after=build_objects)
+
         # return a set of build artifacts
         built_artifacts = dict()
         built_artifacts["cpp"] = cpp
@@ -724,4 +729,5 @@ class PythonatorEnv(CPPEnv):
         if body_type is not PyConstBody:
             built_artifacts["py"] = py
         built_artifacts["o"] = binary
+
         return built_artifacts

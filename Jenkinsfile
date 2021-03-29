@@ -19,8 +19,7 @@ node('linux') {
 
     stage('Docs') {
         sh 'make docs html'
-        sh 'make docs epub'
-        archiveArtifacts artifacts: 'docs/sphinx-build-html.log, docs/sphinx-build-epub.log'
+        archiveArtifacts artifacts: 'docs/sphinx-build-html.log'
         recordIssues(tools: [sphinxBuild(name: 'Docs',
                                          pattern: 'docs/sphinx-build-html.log',
                                          reportEncoding: 'UTF-8')])
@@ -36,11 +35,11 @@ node('linux') {
     stage('Linting') {
         warnError('Error occurred, continue to next stage.') {
             try {
-              sh 'make pylint'
+                sh 'make pylint'
             } finally {
-              archiveArtifacts artifacts: 'pylint.log'
-              recordIssues(tools: [pyLint(name: 'Linting',
-                                          pattern: 'pylint.log')])
+                archiveArtifacts artifacts: 'pylint.log'
+                recordIssues(tools: [pyLint(name: 'Linting',
+                                            pattern: 'pylint.log')])
             }
         }
     }
@@ -48,10 +47,10 @@ node('linux') {
     stage('Style') {
         warnError('Error occurred, continue to next stage.') {
             try {
-              sh 'make pycodestyle'
+                sh 'make pycodestyle'
             } finally {
-              archiveArtifacts artifacts: 'pycodestyle.log'
-              recordIssues(tools: [pep8(name: 'Style',
+                archiveArtifacts artifacts: 'pycodestyle.log'
+                recordIssues(tools: [pep8(name: 'Style',
                                   pattern: 'pycodestyle.log')])
             }
         }
@@ -60,22 +59,22 @@ node('linux') {
     stage('Tests') {
         warnError('Error occurred, catching exception and continuing to store test results.') {
             try {
-              sh 'make test'
+                sh 'make test'
             } finally {
-              archiveArtifacts artifacts: '.coverage, coverage.xml, nosetests.xml'
-              junit 'nosetests.xml'
-              cobertura autoUpdateHealth: false,
-              autoUpdateStability: false,
-              coberturaReportFile: 'coverage.xml',
-              conditionalCoverageTargets: '70, 0, 0',
-              failUnhealthy: false,
-              failUnstable: false,
-              lineCoverageTargets: '80, 0, 0',
-              maxNumberOfBuilds: 0,
-              methodCoverageTargets: '80, 0, 0',
-              onlyStable: false,
-              sourceEncoding: 'ASCII',
-              zoomCoverageChart: false
+                archiveArtifacts artifacts: '.coverage, coverage.xml, testreport.xml'
+                junit 'testreport.xml'
+                cobertura autoUpdateHealth: false,
+                autoUpdateStability: false,
+                coberturaReportFile: 'coverage.xml',
+                conditionalCoverageTargets: '70, 0, 0',
+                failUnhealthy: false,
+                failUnstable: false,
+                lineCoverageTargets: '80, 0, 0',
+                maxNumberOfBuilds: 0,
+                methodCoverageTargets: '80, 0, 0',
+                onlyStable: false,
+                sourceEncoding: 'ASCII',
+                zoomCoverageChart: false
             }
         }
     }

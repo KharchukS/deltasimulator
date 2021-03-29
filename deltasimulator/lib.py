@@ -13,37 +13,38 @@ from deltasimulator.build_tools.environments import (PythonatorEnv,
 from capnp.lib.capnp import _DynamicStructBuilder
 
 
-def generate_wiring(program: _DynamicStructBuilder) -> dict:
+def generate_wiring(program: _DynamicStructBuilder):
     """Creates the wiring of the nodes defined in a program.
 
     Parameters
     ----------
     program: _DynamicStructBuilder
-        A Deltaflow serialized graph
+        A Deltaflow serialized graph.
+
     Returns
     -------
     node_bodies: list
-        the bodies of the extracted nodes
+        The bodies of the extracted nodes.
     node_inits: list
-        all the rom files found in the migen nodes, extracted as strings.
+        All the ROM files found in the migen nodes, extracted as strings.
         This solves an incompatibility between some migen generated outputs
         and verilator.
     wiring: dict
-        the wiring of the graph. This can be used to generate a SystemC top
-        level to wire the graph
+        The graph wiring, used to generate a SystemC top
+        level to wire the graph.
     """
-
     node_headers = []
     node_bodies = []
     node_modules = []
     node_objects = []
     node_inits = []
     verilated_o = None
+
     for node in program.nodes:
-        if node.body != -1:
-            # If node.body is -1 then it is a template node
-            # and cannot be pythonated
-            which_body = program.bodies[node.body].which()
+        if node.bodies:
+            # If there are no node.bodies then it is what was previously  
+            # called a template node and cannot be pythonated
+            which_body = program.bodies[node.bodies[0]].which()
 
             if which_body in ['python', 'interactive']:
                 with PythonatorEnv(program.bodies) as env:
@@ -56,8 +57,11 @@ def generate_wiring(program: _DynamicStructBuilder) -> dict:
 
             elif which_body == 'migen':
                 # This part is adopted from initial-example:
-                top_v = BuildArtifact(name=f"{node.name}.v",
-                                      data=program.bodies[node.body].migen.verilog.encode("utf8"))
+                top_v = BuildArtifact(
+                    name=f"{node.name}.v",
+                    data=program.bodies[node.bodies[0]
+                                        ].migen.verilog.encode("utf8")
+                )
 
                 with VerilatorEnv() as env:
                     build_artifacts = env.verilate(top_v)
@@ -87,29 +91,27 @@ async def _wait_for_build(wiring: dict):
     Parameters
     ----------
     wiring
-        A wired graph
+        A wired graph.
     """
-
     for comp in wiring:
-        _ = await asyncio.wait_for(wiring[comp].data, timeout=None)
+        await asyncio.wait_for(wiring[comp].data, timeout=None)
 
 
 def _copy_artifacts(main, inits, node_bodies, destination):
-    """Copies all the required artifacts into a new destination
+    """Copies all the required artifacts into a new destination.
 
     Parameters
     ----------
     main
-        the main file (main.cpp) for the graph
+        Main file (main.cpp) for the graph.
     inits
-        the memory configuration files
+        Memory configuration files.
     node_bodies
-        the content of the nodes
+        Content of the nodes.
     destination
-        the folder to copy the artifacts into. Note: created if it does
-        not exists
+        Folder to copy the artifacts into. Note: created if it does
+        not exists.
     """
-
     for init in inits:
         with open(path.join(destination, init.name), "wb") as f:
             write(init, f)
@@ -124,21 +126,21 @@ def _copy_artifacts(main, inits, node_bodies, destination):
 
 def _compile_and_link(program_name: str, wiring: list, main_cpp: str):
     """Compiles and link the graph together with a provided top
-    level file
+    level file.
 
     Parameters
     ----------
     program_name: str
-        the name of the program to generate
+        Name of the program to generate.
     wiring: list
-        a wired graph generated via cog
+        Wired graph generated via cog.
     main_cpp: str
-        the top level main file
+        Top level main file.
     """
-
     asyncio.run(_wait_for_build(wiring))
     _main_h = wiring[program_name + ".h"]
     _main_a = wiring[program_name + ".a"]
+
     # Converting the main.cpp into a BuildArtifact
     with HostEnv(dir=path.dirname(main_cpp)) as env:
         _main_cpp = BuildArtifact(name=path.basename(main_cpp), env=env)
@@ -149,12 +151,12 @@ def _compile_and_link(program_name: str, wiring: list, main_cpp: str):
             [_main_a],
             _main_cpp
         )
+
     return main
 
 
 def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
-    """ Generates an executable to be stored in a build
-    directory.
+    """Generates an executable to be stored in a build directory.
 
     Parameters
     ----------
@@ -197,26 +199,27 @@ def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
 
     .. code-block:: python
 
-        from deltalanguage.runtime import serialize_graph
+        import deltalanguage as dl
         from deltasimulator.lib import build_graph
         ...
-        _, program = serialize_graph(graph, name="dut")
+        _, program = dl.serialize_graph(graph, name="dut")
         build_graph(program, main_cpp="main.cpp",
              build_dir="/workdir/build")
         ...
+
 
     .. todo::
 
         Setting stdio/stderr to not buffer is required because `Py_Finalize`
         can cause some memory errors (with eg the Qiskit HAL test).
         Is there a fix for this?
-
     """
 
     if len(program.requirements) > 0:
         req_path = path.join(build_dir, "requirements.txt")
         with open(req_path, "w") as req_txt:
             req_txt.write("\n".join(program.requirements))
+
         try:
             subprocess.run([sys.executable,
                             '-m',
@@ -229,14 +232,19 @@ def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Error with installing required dependencies:",
                                e.output) from e
+
     node_bodies, node_inits, wiring = generate_wiring(program)
     main = _compile_and_link(program.name, wiring, main_cpp)
     _copy_artifacts(main, node_inits, node_bodies, build_dir)
+
     if program.files != b'':
         zip_name = path.join(build_dir, "df_zip.zip")
+
         with open(zip_name, "wb") as zip_file:
             zip_file.write(program.files)
+
         df_zip = zipfile.ZipFile(zip_name, "r")
+
         if df_zip.testzip() is None:
             df_zip.extractall(build_dir)
         else:

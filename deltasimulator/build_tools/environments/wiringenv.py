@@ -1,4 +1,5 @@
 import os.path as path
+from typing import Dict
 
 import dill
 
@@ -28,11 +29,13 @@ class WiringEnv(CPPEnv):
     Parameters
     ----------
     capnp_nodes : list
-        Nodes in the graph, described as capnp objects
+        Nodes in the graph, described as ``capnp`` objects.
     capnp_bodies : list
-        Bodies for the nodes, described as capnp objects
+        Bodies for the nodes, described as ``capnp`` objects.
     node_headers : list
-        Header files for the nodes, wrapped in :class:`BuildArtifact<deltasimulator.build_tools.BuildArtifact>` objects.
+        Header files for the nodes, wrapped in
+        :py:class:`BuildArtifact<deltasimulator.build_tools.BuildArtifact>`
+        objects.
     node_objects : list
         Built binary objects for the nodes.
         For Python nodes these are .o files, and for Migen these are .a
@@ -43,7 +46,7 @@ class WiringEnv(CPPEnv):
         built using Verilator. Note that this is the same regardless of the
         node it was built with, so only a single copy is required.
     prog_name : Optional[str]
-        The name of this program, by default "main"
+        The name of this program, by default "main".
 
 
     .. note::
@@ -67,7 +70,13 @@ class WiringEnv(CPPEnv):
         implementation of a template node if needed.
     """
 
-    def __init__(self, capnp_nodes, capnp_bodies, node_headers, node_objects, verilated_o=None, prog_name="main"):
+    def __init__(self,
+                 capnp_nodes,
+                 capnp_bodies,
+                 node_headers,
+                 node_objects,
+                 verilated_o=None,
+                 prog_name="main"):
         super().__init__()
         if prog_name:
             self._prog_name = prog_name
@@ -88,19 +97,24 @@ class WiringEnv(CPPEnv):
         Parameters
         ----------
         wire
-            capnp object describing a wire in the graph.
+            ``capnp`` object describing a wire in the graph.
 
         Returns
         -------
         str
             The name of the wire used by this environment.
-            The format used is `{src_node}_{src_port}_{dest_node}_{dest_port}`,
-            where `src_node` & `dest_node` are the indexes of the source
-            and destination node in the list of nodes, and `src_port`
-            & `dest_port` are the indexes of the ports in their respective
+            The format used is
+            ``{src_node}_{src_port}_{dest_node}_{dest_port}``,
+            where ``src_node`` & ``dest_node`` are the indexes of the source
+            and destination node in the list of nodes, and ``src_port``
+            & ``dest_port`` are the indexes of the ports in their respective
             nodes list of ports.
         """
-        return "_".join(["wire", str(wire.srcNode), str(wire.srcOutPort), str(wire.destNode), str(wire.destInPort)])
+        return "_".join(["wire",
+                         str(wire.srcNode),
+                         str(wire.srcOutPort),
+                         str(wire.destNode),
+                         str(wire.destInPort)])
 
     def get_template_wire_name(self, wire, body="python", direction="out"):
         """Gets standardised name of a wire connecting to a template node.
@@ -111,22 +125,22 @@ class WiringEnv(CPPEnv):
         Parameters
         ----------
         wire
-            capnp object describing a wire in the graph.
+            ``capnp`` object describing a wire in the graph.
         body : Optional[str]
             The body-type of the non-template node, by default "python"
         direction : Optional[str]
-            The direction of the wire, by default "out"
+            The direction of the wire, by default "out".
 
         Returns
         -------
         str
             The name of the wire used by this environment.
-            The format used is `{node_name}_{wire_name}` where
-            `node_name` is the name of the node and `wire_name` is the
+            The format used is ``{node_name}_{wire_name}`` where
+            ``node_name`` is the name of the node and ``wire_name`` is the
             name of the SystemC module's port.
-            See :meth:`PythonatorEnv.get_sysc_port_name` and
-            :meth:`VerilatorEnv.get_sysc_port_name` for the formats of
-            `wire_name`.
+            See :py:meth:`PythonatorEnv.get_sysc_port_name` and
+            :py:meth:`VerilatorEnv.get_sysc_port_name` for the formats of
+            ``wire_name``.
         """
         if direction == "out":
             node = self._capnp_nodes[wire.srcNode]
@@ -139,7 +153,9 @@ class WiringEnv(CPPEnv):
         elif body == "interactive":
             return f"{node.name}_{PythonatorEnv.get_sysc_port_name(port)}"
         elif body == "migen":
-            return (f"{node.name}_{wire_name}" for wire_name in VerilatorEnv.get_sysc_port_name(port, direction=direction))
+            return (f"{node.name}_{wire_name}"
+                    for wire_name in VerilatorEnv.get_sysc_port_name(
+                        port, direction=direction))
 
     def _get_top_name(self):
         """Gets name of top module.
@@ -150,25 +166,28 @@ class WiringEnv(CPPEnv):
             The name of the module. The format is a capitalised version
             of the program's name.
         """
-        return "_".join([word.capitalize() for word in self._prog_name.split("_")])
+        return "_".join([word.capitalize()
+                         for word in self._prog_name.split("_")])
 
     def _get_node_types(self):
-        """Determines which nodes are python, migen or template"""
+        """Determines which nodes are python, migen or template."""
         self._py_nodes = []
         self._migen_nodes = []
         self._has_templates = False
+
         for node in self._capnp_nodes:
-            if node.body == -1:
-                self._has_templates = True
-            else:
-                body_type = self._capnp_bodies[node.body].which()
+            if node.bodies:
+                body_type = self._capnp_bodies[node.bodies[0]].which()
                 if body_type in ["python", "interactive"]:
                     self._py_nodes.append(node)
                 elif body_type == "migen":
                     self._migen_nodes.append(node)
+            else:
+                self._has_templates = True
+
 
     def _get_adaptors(self, capnp_graph):
-        """Determines which conversions are needed between nodes"""
+        """Determines which conversions are needed between nodes."""
         self._py_to_py = []
         self._py_to_migen = []
         self._py_to_template = []
@@ -178,31 +197,37 @@ class WiringEnv(CPPEnv):
         self._template_to_py = []
         self._template_to_migen = []
         num_const_wires = 0
+
         for wire in capnp_graph:
-            src_body_index = self._capnp_nodes[wire.srcNode].body
-            if (src_body_index == -1):
-                src_body_type = "template"
-            else:
+            if self._capnp_nodes[wire.srcNode].bodies:
+                src_body_index = self._capnp_nodes[wire.srcNode].bodies[0]
                 src_body_type = self._capnp_bodies[src_body_index].which()
-            dest_body_index = self._capnp_nodes[wire.destNode].body
-            if (dest_body_index == -1):
-                dest_body_type = "template"
             else:
+                src_body_type = "template"
+            if self._capnp_nodes[wire.destNode].bodies:
+                dest_body_index = self._capnp_nodes[wire.destNode].bodies[0]
                 dest_body_type = self._capnp_bodies[dest_body_index].which()
+            else:
+                dest_body_type = "template"
             if (src_body_type in ["python", "interactive"]) and (dest_body_type in ["python", "interactive"]):
                 if src_body_type == "interactive":
-                    src_body = type(dill.loads(self._capnp_bodies[src_body_index].interactive.dillImpl))
+                    src_body = type(dill.loads(
+                        self._capnp_bodies[src_body_index].interactive.dillImpl))
                 else:
-                    src_body = type(dill.loads(self._capnp_bodies[src_body_index].python.dillImpl))
+                    src_body = type(dill.loads(
+                        self._capnp_bodies[src_body_index].python.dillImpl))
                 if dest_body_type == "interactive":
-                    dest_body = type(dill.loads(self._capnp_bodies[dest_body_index].interactive.dillImpl))
+                    dest_body = type(dill.loads(
+                        self._capnp_bodies[dest_body_index].interactive.dillImpl))
                 else:
-                    dest_body = type(dill.loads(self._capnp_bodies[dest_body_index].python.dillImpl))
+                    dest_body = type(dill.loads(
+                        self._capnp_bodies[dest_body_index].python.dillImpl))
                 if (src_body is PyConstBody) and (dest_body is PyConstBody):
                     # Don't wire constant-to-constant nodes
                     num_const_wires += 1
                 else:
                     self._py_to_py.append(wire)
+
             elif (src_body_type in ["python", "interactive"]) and (dest_body_type == "migen"):
                 self._py_to_migen.append(wire)
             elif (src_body_type in ["python", "interactive"]) and (dest_body_type == "template"):
@@ -217,6 +242,7 @@ class WiringEnv(CPPEnv):
                 self._template_to_py.append(wire)
             elif (src_body_type == "template") and (dest_body_type == "migen"):
                 self._template_to_migen.append(wire)
+
         if num_const_wires == len(capnp_graph) and num_const_wires > 0:
             raise RuntimeError("Graph cannot consist of only constant nodes.")
 
@@ -286,8 +312,10 @@ class WiringEnv(CPPEnv):
             return 0;
         }
         """
-        with open(path.join(self.tempdir, f"{self._prog_name}.cpp"), "wb") as main_path:
+        with open(path.join(self.tempdir, f"{self._prog_name}.cpp"),
+                  "wb") as main_path:
             main_path.write(cogify(main_tmpl, globals=locals()))
+
         return True
 
     def _get_main_cpp(self, after):
@@ -714,10 +742,15 @@ class WiringEnv(CPPEnv):
 
         #endif
         """
+        with open(path.join(self.tempdir, f"{self._prog_name}.h"),
+                  "wb") as top_path:
+            await multiple_waits(
+                [write_futures(header, top_path)
+                 for header in self._node_headers]
+            )
+            top_path.write(cogify(top_tmpl,
+                                  globals=dict(globals(), **locals())))
 
-        with open(path.join(self.tempdir, f"{self._prog_name}.h"), "wb") as top_path:
-            await multiple_waits([write_futures(header, top_path) for header in self._node_headers])
-            top_path.write(cogify(top_tmpl, globals=dict(globals(), **locals())))
         return True
 
     def _get_top_h(self, after):
@@ -775,8 +808,12 @@ class WiringEnv(CPPEnv):
         bool
             Returns True when complete.
         """
-        object_paths = [open(path.join(self.tempdir, module.name), "wb") for module in self._node_objects]
-        await multiple_waits([write_futures(module, object_path) for module, object_path in zip(self._node_objects, object_paths)])
+        object_paths = [open(path.join(self.tempdir, module.name), "wb")
+                        for module in self._node_objects]
+        await multiple_waits(
+            [write_futures(module, object_path)
+             for module, object_path in zip(self._node_objects, object_paths)]
+        )
         for object_path in object_paths:
             object_path.close()
         return True
@@ -796,7 +833,11 @@ class WiringEnv(CPPEnv):
         bool
             Returns True upon completion.
         """
-        done = await self._run_ar([object_file.name for object_file in self._node_objects], after=after, name=self._prog_name)
+        done = await self._run_ar(
+            [object_file.name for object_file in self._node_objects],
+            after=after,
+            name=self._prog_name
+        )
         return done
 
     async def _link_objects(self, main_o, archive, after):
@@ -817,7 +858,10 @@ class WiringEnv(CPPEnv):
         bool
             Returns True when complete.
         """
-        done = await self._link(main_o.name, archive, after=after, name=self._prog_name)
+        done = await self._link(main_o.name,
+                                archive,
+                                after=after,
+                                name=self._prog_name)
         return done
 
     def wiring(self, capnp_graph):
@@ -826,39 +870,49 @@ class WiringEnv(CPPEnv):
         Parameters
         ----------
         capnp_graph
-            capnp object describing the full wiring
+            ``capnp`` object describing the full wiring.
 
         Returns
         -------
-        dict
-            Map from strings to :class:`BuildArtifact<deltasimulator.build_tools.BuildArtifact>` objects.
-            Mapping is the following, where `prog_name` is the name of
+        Dict[srt, BuildArtifact]
+            Map from strings to
+            :py:class:`BuildArtifact<deltasimulator.build_tools.BuildArtifact>`
+            objects.
+            Mapping is the following, where ``prog_name`` is the name of
             the program:
 
-            - "{prog_name}.h": the header file containing all node headers and the full wiring module.
-            - "{prog_name}.a": .a archive containing all built objects.
+            - "{prog_name}.h": the header file containing all node headers
+              and the full wiring module,
+            - "{prog_name}.a": ``.a`` archive containing all built objects.
 
             If there are no template nodes the following are also provided:
 
-            - "{prog_name}.cpp": C++ code containing :cpp:func:`sc_main` for complete runtime
-            - "{prog_name}.o" binary object for :cpp:func:`sc_main`
+            - "{prog_name}.cpp": C++ code containing :cpp:func:`sc_main`
+              for complete runtime,
+            - "{prog_name}.o" binary object for :cpp:func:`sc_main`,
             - "{prog_name}" complete runtime executable.
-
         """
         self._get_adaptors(capnp_graph)
+
         make_top = self._make_top()
         top_h = self._get_top_h(make_top)
+
         if not self._has_templates:
             make_main = self._make_main()
             main_file = self._get_main_cpp(make_main)
             build_main = self._build_main([make_main, make_top])
             main_o = self._get_main_object(build_main)
+
         write_objects = self._write_objects()
         make_archive = self._make_archive([write_objects])
         main_a = self._get_archive(make_archive, name=self._prog_name)
         if not self._has_templates:
-            link_objects = self._link_objects(main_o, main_a, [build_main, make_archive])
-            complete_runtime = self._get_main(link_objects, name=self._prog_name)
+            link_objects = self._link_objects(main_o,
+                                              main_a,
+                                              [build_main, make_archive])
+            complete_runtime = self._get_main(link_objects,
+                                              name=self._prog_name)
+
         build_artifacts = dict()
         build_artifacts[f"{self._prog_name}.h"] = top_h
         build_artifacts[f"{self._prog_name}.a"] = main_a
@@ -866,4 +920,5 @@ class WiringEnv(CPPEnv):
             build_artifacts[f"{self._prog_name}.cpp"] = main_file
             build_artifacts[f"{self._prog_name}.o"] = main_o
             build_artifacts[f"{self._prog_name}"] = complete_runtime
+
         return build_artifacts

@@ -65,6 +65,16 @@ UPLOADPACKAGE=python -m twine upload \
 	-p $(pass) \
 	dist/*
 
+PYTEST=pytest \
+	-v \
+	-ra \
+	--random-order \
+	--log-level=INFO \
+	--junitxml=testreport.xml \
+	--cov-report xml \
+	--cov-report term \
+	--cov=${PROJECTNAME}
+
 MAKEPACKAGE=python setup.py sdist bdist_wheel
 
 CHECKPACKAGE=python -m twine check dist/*
@@ -139,19 +149,11 @@ docs: container ## Generate docs
 
 
 .PHONY: test
-test: test-nose ## Run all the tests
+test: pytest ## Run all the tests
 
-.PHONY: test-nose
-test-nose: container ## Run the test suite via nose
-	${DEXEC} python -m nose \
-	--with-xunit \
-	--logging-level=INFO \
-	--with-xcoverage \
-	--cover-erase \
-	--cover-package=${PROJECTNAME} \
-	--verbose \
-	--detailed-errors \
-	--with-randomly
+.PHONY: pytest
+pytest: container ## Run the test suite via pytest
+	${DEXEC} ${PYTEST}
 
 .PHONY: test-unit
 test-unit: container ## Run the test suite via unittest
@@ -245,7 +247,7 @@ clean-container: ## Stop the container
 
 .PHONY: clean-cover
 clean-cover: ## Clean the test suite results
-	rm -f .coverage coverage.xml nosetests.xml trace.vcd
+	rm -f .coverage coverage.xml testreport.xml trace.vcd
 
 .PHONY: clean-docs
 clean-docs: ## Clean docs
@@ -278,19 +280,11 @@ licenses: container
 # the development container via VSCode
 
 .PHONY: dev-test
-dev-test: dev-test-nose ## Run all the tests inside the VSCode devcontainer
+dev-test: dev-pytest ## Run all the tests inside the VSCode devcontainer
 
-.PHONY: dev-test-nose
-dev-test-nose: ## Run the test suite via nose inside the VSCode devcontainer
-	python -m nose \
-	--with-xunit \
-	--logging-level=INFO \
-	--with-xcoverage \
-	--cover-erase \
-	--cover-package=${PROJECTNAME} \
-	--verbose \
-	--detailed-errors \
-	--with-randomly
+.PHONY: dev-pytest
+dev-pytest: ## Run the test suite via pytest inside the VSCode devcontainer
+	${PYTEST}
 
 .PHONY: dev-test-unit
 dev-test-unit: ## Run the test suite via unittest inside the VSCode devcontainer

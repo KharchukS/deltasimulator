@@ -7,7 +7,6 @@ class Environment():
 
     Attributes
     ----------
-
     tempdir : TemporaryDirectory
         The temporary directory this environment is within.
     """
@@ -16,13 +15,14 @@ class Environment():
         self._tempdirmanger = tempfile.TemporaryDirectory()
         self.tempdir = None
 
-        self._check_env_ok() # override this function to ensure all tools are present
+        # override this function to ensure all tools are present
+        self._check_env_ok()
 
-    # I think we intend for the user to be making the contexts, so they will always
-    # be created from non-async python. If we want to enter subcontexts we will need
-    # __aenter__ as well.
+    # I think we intend for the user to be making the contexts, so they
+    # will always be created from non-async python.
+    # If we want to enter subcontexts we will need __aenter__ as well.
     def __enter__(self):
-        """enter the temp dir."""
+        """Enter the temp dir."""
         self.tempdir = self._tempdirmanger.__enter__()
         return self
 

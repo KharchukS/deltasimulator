@@ -17,42 +17,47 @@ class BuildArtifact():
     env : Optional[Environment]
         The environment that the artifact was built within. This is used
         to know which temporary directory the artifact is within.
-        By default `None`.
+        By default ``None``.
     path : Optional[str]
-        The file path within the temp directory, by default "."
+        The file path within the temp directory, by default ".".
     after : Optional[Coroutine]
         An asynchronous coroutine which needs to complete before the artifact
-        has been built
+        has been built.
     data : Union[bytes, bytearray]
         If the artefact's content is already available then it can be
         provided as-is rather than needing to build it in an environment.
 
 
     .. warning::
-        If `env` is `None` then `data` must not be `None`,
+        If ``env`` is ``None`` then ``data`` must not be ``None``,
         otherwise a :exc:`ValueError` will be raised.
 
     .. warning::
-        If `data` is provided then it must be bytes or byteslike,
+        If ``data`` is provided then it must be bytes or byteslike,
         otherwise a :exc:`TypeError` will be raised.
     """
 
-    def __init__(self, name: str, env=None, path: str = ".", after=None, data=None):
+    def __init__(self,
+                 name: str,
+                 env=None,
+                 path: str = ".",
+                 after=None,
+                 data=None):
         self.name = name
         self.path = path
 
-        if data is not None: # literal provided
+        if data is not None:  # literal provided
             if not isinstance(data, (bytes, bytearray)):
-                raise TypeError(
-                    f"If data is provided it must be bytes or byteslike, was {type(data)}")
+                raise TypeError("If data is provided it must be bytes "
+                                f"or byteslike, was {type(data)}")
             self._data = data  # if we have bytes, use them
             self.env = None
             self._flag = None
         else:  # no data - need to look it up in an env
             self._data = None
             if env is None:
-                raise ValueError(
-                    "If data is not provided, we must know the env to look the file up within")
+                raise ValueError("If data is not provided, we must know "
+                                 "the env to look the file up within")
             self.env = env
             if env.tempdir is None:
                 raise RuntimeError(
@@ -63,7 +68,8 @@ class BuildArtifact():
 
     @property
     async def data(self):
-        """The content of the :class:`BuildArtifact<deltasimulator.build_tools.BuildArtifact>`.
+        """The content of 
+        :py:class:`BuildArtifact<deltasimulator.build_tools.BuildArtifact>`.
         If data was not provided when constructed then the content is
         retrieved from the build environment's temporary directory,
         building the file if needed by waiting for the :class:`Coroutine`
@@ -77,7 +83,7 @@ class BuildArtifact():
         Raises
         ------
         RuntimeError
-            If there is no data and no :class:`Environment` is provided
+            If there is no data and no :py:class:`Environment` is provided
             then an error will be raised.
         FileNotFoundError
             Raised if the file wrapped by the BuildArtifact is not found.
@@ -93,6 +99,7 @@ class BuildArtifact():
             if self.env.tempdir is None:
                 raise RuntimeError(
                     f"env {self.env} does not have a tempdir for path lookup")
+
             try:
                 path = os.path.join(self.env.tempdir, self.path, self.name)
                 with open(path, "rb") as file:
@@ -100,25 +107,27 @@ class BuildArtifact():
                     return self._data
             except FileNotFoundError as e:
                 # try and be helpful
-                log.error(
-                    f"file lookup failed: dir contents {list(os.walk(path))}, {e}")
-                log.error(
-                    f"tmp dir root contents {os.listdir(self.env.tempdir)}, {e}")
-                log.error(
-                    f"you probably forgot a after call - we expect to be after {self._flag}, {e}")
+                log.error("file lookup failed: dir contents "
+                          f"{list(os.walk(path))}, {e}")
+                log.error("tmp dir root contents "
+                          f"{os.listdir(self.env.tempdir)}, {e}")
+                log.error("you probably forgot a after call - we expect "
+                          f"to be after {self._flag}, {e}")
                 log.error(f"Full traceback: {traceback.format_exc()}, {e}")
 
-                # we currently hold a ref to env, that will preserve the tempdirs
-                # that should hold this file. We can be helpful and drop to a shell
+                # We currently hold a ref to env, that will preserve
+                # the tempdirs that should hold this file.
+                # We can be helpful and drop to a shell
                 # so the user can investigate the problem
                 if False:
-                    log.error(
-                        "Dropping to a shell, press CTRL+d to exit and continue")
+                    log.error("Dropping to a shell, "
+                              "press CTRL+d to exit and continue")
                     os.chdir(self.env.tempdir)
                     import pty
                     pty.spawn("/bin/bash")
 
-                # after the shell is done, the user has investigated the problem
+                # after the shell is done,
+                # the user has investigated the problem,
                 # we should just terminate the process
                 raise
 
@@ -126,9 +135,8 @@ class BuildArtifact():
 class BuildArtifactSet():
     """Wrapper object for asynchronously building a set of files.
 
-    A :class:`BuildArtifactSet` has the same API as a :class:`dict` object in Python.
+    This class has the same API as a :class:`dict` object in Python.
     """
-
     def __init__(self):
         self._store = dict()
 
@@ -175,5 +183,4 @@ def write(object: BuildArtifact, output_file):
         Will raise an error if called within an asynchronous process.
         Use :meth:`write_futures` instead.
     """
-
     asyncio.run(write_futures(object, output_file))
