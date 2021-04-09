@@ -9,10 +9,10 @@ class Return_1000_0_module : public sc_module
 {
 private:
     uint64_t no_ins, no_outs;
-    void set_sysc_return();
+    void set_sysc_output();
 public:
     uint64_t no_inputs, no_outputs;
-    sc_fifo<sc_dt::sc_bv<32>>* sysc_return;
+    sc_fifo<sc_dt::sc_bv<32>>* sysc_output;
     int get_no_inputs() const;
     int get_no_outputs() const;
     void body();
@@ -407,7 +407,7 @@ counter2_2_clk("counter2_2_clk")
     counter2_2.i1_in_ready.bind(wire_1_0_2_0_ready);
 
     // Wiring the Python to Migen nodes
-    return_1000_0.sysc_return = &wire_0_0_1_0_py_out;
+    return_1000_0.sysc_output = &wire_0_0_1_0_py_out;
     wire_0_0_1_0_adaptor.clk(clk);
     wire_0_0_1_0_adaptor.py_in = &wire_0_0_1_0_py_out;
     wire_0_0_1_0_adaptor.migen_data_out.bind(wire_0_0_1_0_migen_in);

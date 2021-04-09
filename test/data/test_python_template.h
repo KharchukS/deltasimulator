@@ -9,10 +9,10 @@ class Node_0_module : public sc_module
 {
 private:
     uint64_t no_ins, no_outs;
-    void set_sysc_return();
+    void set_sysc_output();
 public:
     uint64_t no_inputs, no_outputs;
-    sc_fifo<sc_dt::sc_bv<32>>* sysc_return;
+    sc_fifo<sc_dt::sc_bv<32>>* sysc_output;
     int get_no_inputs() const;
     int get_no_outputs() const;
     void body();
@@ -31,10 +31,10 @@ class Node_1_module : public sc_module
 {
 private:
     uint64_t no_ins, no_outs;
-    void set_sysc_return();
+    void set_sysc_output();
 public:
     uint64_t no_inputs, no_outputs;
-    sc_fifo<sc_dt::sc_bv<32>>* sysc_return;
+    sc_fifo<sc_dt::sc_bv<32>>* sysc_output;
     int get_no_inputs() const;
     int get_no_outputs() const;
     void body();
@@ -161,8 +161,8 @@ SC_MODULE(Test_Python_Template){
 // to a queue
 
 // Python to template need a public queue
-sc_fifo<sc_dt::sc_bv<32>> node_0_sysc_return;
-sc_fifo<sc_dt::sc_bv<32>> node_1_sysc_return;
+sc_fifo<sc_dt::sc_bv<32>> node_0_sysc_output;
+sc_fifo<sc_dt::sc_bv<32>> node_1_sysc_output;
 
 // Template to python need a public queue
 sc_fifo<sc_dt::sc_bv<32>> print_then_exit_3_sysc_n;
@@ -201,8 +201,8 @@ print_then_exit_3("print_then_exit_3")
     // Wiring the Migen to Python nodes
 
     // Wiring the Python to template nodes
-    node_0.sysc_return = &node_0_sysc_return;
-    node_1.sysc_return = &node_1_sysc_return;
+    node_0.sysc_output = &node_0_sysc_output;
+    node_1.sysc_output = &node_1_sysc_output;
 
     // Wiring the template to Python nodes
     print_then_exit_3.sysc_n = &print_then_exit_3_sysc_n;
@@ -216,8 +216,8 @@ print_then_exit_3("print_then_exit_3")
 
 
 
-    node_0_sysc_return.trace(Tf);
-    node_1_sysc_return.trace(Tf);
+    node_0_sysc_output.trace(Tf);
+    node_1_sysc_output.trace(Tf);
 
     print_then_exit_3_sysc_n.trace(Tf);
 

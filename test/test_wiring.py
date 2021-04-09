@@ -2,17 +2,18 @@ import asyncio
 import unittest
 from os import path
 
-from deltalanguage.data_types import Int, Size, make_forked_return, Void
+from deltalanguage.data_types import Int, Size, Void
 from deltalanguage.wiring import (DeltaBlock,
                                   DeltaGraph,
                                   NodeTemplate,
                                   Interactive,
                                   PythonNode)
 from deltalanguage.runtime import DeltaRuntimeExit, serialize_graph
+from deltalanguage.test._utils import DUT1
+
 from deltasimulator.lib import generate_wiring, _wait_for_build
 
-from test._utils import (DUT1,
-                         add,
+from test._utils import (add,
                          add_const,
                          print_then_exit,
                          print_then_exit_64_bit,
@@ -117,11 +118,9 @@ class TestWiring(unittest.TestCase):
         self.check_build(test_graph)
 
     def test_forked(self):
-        ForkedReturnT, ForkedReturn = make_forked_return({'a': int, 'b': int})
-
-        @DeltaBlock(allow_const=False)
-        def add_2_add_3(n: int) -> ForkedReturnT:
-            return ForkedReturn(a=n+2, b=n+3)
+        @DeltaBlock(outputs=[('a', int), ('b', int)], allow_const=False)
+        def add_2_add_3(n: int):
+            return n+2, n+3
 
         with DeltaGraph(name="test_forked") as test_graph:
             ab = add_2_add_3(n=1)
@@ -130,7 +129,7 @@ class TestWiring(unittest.TestCase):
         self.check_build(test_graph)
 
     def test_interactive(self):
-        @Interactive([("num", int)], int, name="interactive")
+        @Interactive([("num", int)], [("output", int)], name="interactive")
         def interactive_func(node: PythonNode):
             for _ in range(10):
                 num = node.receive()["num"]
@@ -158,7 +157,7 @@ class TestWiring(unittest.TestCase):
         self.check_build(test_graph)
 
     def test_python_template(self):
-        py_template = NodeTemplate([('a', int), ('b', int)], int)
+        py_template = NodeTemplate([('a', int), ('b', int)], [('out', int)])
 
         with DeltaGraph("test_python_template") as test_graph:
             print_then_exit(py_template.call(a=1, b=2))
@@ -166,7 +165,7 @@ class TestWiring(unittest.TestCase):
         self.check_build(test_graph)
 
     def test_migen_template(self):
-        migen_template = NodeTemplate([('a', int)], int)
+        migen_template = NodeTemplate([('a', int)], [('out', int)])
 
         with DeltaGraph("test_migen_template") as test_graph:
             c1 = DUT1(tb_num_iter=2000, name='counter1').call(i1=return_1000())

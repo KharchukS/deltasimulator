@@ -99,7 +99,7 @@ class PythonatorEnv(CPPEnv):
         if port.name:
             return f"sysc_{port.name}"
         else:
-            return "sysc_return"
+            raise ValueError("No name on port")
 
     @staticmethod
     def get_module_name(top_p):
@@ -157,14 +157,11 @@ class PythonatorEnv(CPPEnv):
                 inports_str = '[' + '"{0}"'.format('", "'.join(inports_list)) + ']'
                 if (len(inports_list) > 0):
                     cog.outl(f"        self.in_queues = dict.fromkeys({inports_str}) ")
-                cog.outl("    def send(self,val):")
-                if len(top_p.outPorts) > 1:
-                    for port in top_p.outPorts:
-                        cog.outl(f"        if val.{port.name} is not None:")
-                        cog.outl(f"            {module_name.lower()}_sysc.send(\\"{port.name}\\", {self.get_sysc_port_name(port)}.pack(val.{port.name}))")
-                else:
-                    cog.outl(f"        if val is not None:")
-                    cog.outl(f"            {module_name.lower()}_sysc.send(\\"{port.name}\\", {self.get_sysc_port_name(port)}.pack(val))")
+                send_args_str = 'self' + ''.join(', ' + port.name + '=None' for port in top_p.outPorts)
+                cog.outl(f"    def send({send_args_str}):")
+                for port in top_p.outPorts:
+                    cog.outl(f"        if {port.name} is not None:")
+                    cog.outl(f"            {module_name.lower()}_sysc.send(\\"{port.name}\\", {self.get_sysc_port_name(port)}.pack({port.name}))")
                 cog.outl("    def receive(self, *args: str):")
                 if (len(inports_list) == 0):
                     cog.outl("        raise RuntimeError ")
@@ -514,13 +511,13 @@ class PythonatorEnv(CPPEnv):
                 if body_type is PyConstBody:
                     body = dill.loads(self._bodies[top_p.bodies[0]].python.dillImpl)
                     val = body.eval()
-                for port in top_p.outPorts:
+                for i, port in enumerate(top_p.outPorts):
                     port_type = self.load_port_type(port)
                     cog.outl(f"void {module_name}::set_{self.get_sysc_port_name(port)}(){{")
                     cog.outl(f"    if ({self.get_sysc_port_name(port)} != NULL){{")
                     if body_type is PyConstBody:
-                        if port.name:
-                            port_val = val[port.name]
+                        if len(top_p.outPorts) > 1:
+                            port_val = val[i]
                         else:
                             port_val = val
                         if port_val is not None:
@@ -528,8 +525,9 @@ class PythonatorEnv(CPPEnv):
                         else:
                             raise ValueError(f'None returned by constant node {top_p.name}.')
                     else:
-                        if port.name:
-                            cog.outl(f"        PyObject* pyRet = PyObject_GetAttrString(this->pyC,\\"{port.name}\\");")
+                        if len(top_p.outPorts) > 1:
+                            cog.outl(f"        PyObject* acc_i = Py_BuildValue(\\"i\\", {i});")
+                            cog.outl(f"        PyObject* pyRet = PyObject_GetItem(this->pyC, acc_i);")
                         else:
                             cog.outl(f"        PyObject* pyRet = this->pyC;")
                         cog.outl("        if (pyRet != Py_None){")

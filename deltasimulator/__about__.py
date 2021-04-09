@@ -57,12 +57,14 @@ contributors = ["Kenton Barnes",
                 "Marco Ghibaudi",
                 "Alex Moylett",
                 "Tom Parks",
-                "Jan Snoeijs"]
+                "Jan Snoeijs",
+                "Dan Underwood",
+                "Noon van der Silk"]
 __contributors__ = ", ".join(contributors)
 __contributors_lines__ = "\n".join(contributors)
 __email__ = "deltaflow@riverlane.com"
 
-version_info = (0, 5, 1)
+version_info = (0, 6, 0)
 """Tuple[int, int, int] : version information
 The three components of the version:
 ``major``, ``minor`` and ``micro``: Module level variable documented inline.

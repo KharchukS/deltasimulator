@@ -7,10 +7,12 @@ import dill
 from deltalanguage.data_types import Float, Int, UInt
 from deltalanguage.runtime import serialize_graph
 from deltalanguage.wiring import DeltaGraph
+from deltalanguage.test._utils import DUT1
+
 from deltasimulator.build_tools import BuildArtifact
 from deltasimulator.build_tools.environments import VerilatorEnv
 
-from test._utils import DUT1, print_then_exit, return_1000
+from test._utils import print_then_exit, return_1000
 
 
 class TestVerilator(unittest.TestCase):

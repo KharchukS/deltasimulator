@@ -67,13 +67,13 @@ Pythonate_Interactive_5_module::Pythonate_Interactive_5_module(sc_module_name na
     exit(-1);
     }
     sysc_opt = NULL;
-    this->type_sysc_return = PyObject_GetAttrString(this->pModule, "sysc_return");
-    if (this->type_sysc_return == NULL){
+    this->type_sysc_output = PyObject_GetAttrString(this->pModule, "sysc_output");
+    if (this->type_sysc_output == NULL){
     if (PyErr_Occurred()) PyErr_Print();
-    std::cout << "failed to import return type in pythonate_interactive_5." << std::endl;
+    std::cout << "failed to import type for out port output in pythonate_interactive_5." << std::endl;
     exit(-1);
     }
-    sysc_return = NULL;
+    sysc_output = NULL;
     Py_XDECREF(this->pName);
     Py_XDECREF(this->pModule);
     SC_THREAD(body);
@@ -131,7 +131,7 @@ PyObject* Pythonate_Interactive_5_module::sc_send(PyObject *self, PyObject *args
     }
     singleton->wait(1, SC_NS);
     std::string outs (outport);
-    singleton->sysc_return->write(data);
+    singleton->sysc_output->write(data);
     return Py_None;
 }
 

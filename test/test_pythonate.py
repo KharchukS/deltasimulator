@@ -12,7 +12,7 @@ from test._utils import add, const_exit, print_then_exit
 
 
 @Interactive([("num", int), ("val", int), ("opt", Optional(int))],
-             int,
+             [("output", int)],
              name="pythonate_interactive")
 def interactive_func(node: PythonNode):
     while(True):

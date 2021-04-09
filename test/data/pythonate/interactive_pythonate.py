@@ -5,13 +5,13 @@ body = dill.loads(b'\x80\x04\x95\xe3\x01\x00\x00\x00\x00\x00\x00\x8c.deltalangua
 sysc_num = dill.loads(b'...')
 sysc_val = dill.loads(b'...')
 sysc_opt = dill.loads(b'...')
-sysc_return = dill.loads(b'...')
+sysc_output = dill.loads(b'...')
 class SysBridgeNode:
     def __init__(self): 
         self.in_queues = dict.fromkeys(["num", "val", "opt"]) 
-    def send(self,val):
-        if val is not None:
-            pythonate_interactive_5_module_sysc.send("opt", sysc_opt.pack(val))
+    def send(self, output=None):
+        if output is not None:
+            pythonate_interactive_5_module_sysc.send("output", sysc_output.pack(output))
     def receive(self, *args: str):
         if args: 
             in_queue = {name: in_q for name, in_q in self.in_queues.items() if name in args}

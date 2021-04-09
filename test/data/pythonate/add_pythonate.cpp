@@ -42,13 +42,13 @@ Add_2_module::Add_2_module(sc_module_name name): sc_module(name) {
     exit(-1);
     }
     sysc_b = NULL;
-    this->type_sysc_return = PyObject_GetAttrString(this->pModule, "sysc_return");
-    if (this->type_sysc_return == NULL){
+    this->type_sysc_output = PyObject_GetAttrString(this->pModule, "sysc_output");
+    if (this->type_sysc_output == NULL){
     if (PyErr_Occurred()) PyErr_Print();
-    std::cout << "failed to import return type in add_2." << std::endl;
+    std::cout << "failed to import type for out port output in add_2." << std::endl;
     exit(-1);
     }
-    sysc_return = NULL;
+    sysc_output = NULL;
     Py_XDECREF(this->pName);
     Py_XDECREF(this->pModule);
     SC_THREAD(body);
@@ -65,11 +65,11 @@ PyObject* Add_2_module::get_sysc_b(){
     return PyObject_CallMethodObjArgs(this->type_sysc_b, PyUnicode_FromString("unpack"), PyBytes_FromStringAndSize(bits_sysc_b.to_string().c_str(), 32), NULL);
 };
 
-void Add_2_module::set_sysc_return(){
-    if (sysc_return != NULL){
+void Add_2_module::set_sysc_output(){
+    if (sysc_output != NULL){
         PyObject* pyRet = this->pyC;
         if (pyRet != Py_None){
-            PyObject* pyBits = PyObject_CallMethodObjArgs(this->type_sysc_return, PyUnicode_FromString("pack"), pyRet, NULL);
+            PyObject* pyBits = PyObject_CallMethodObjArgs(this->type_sysc_output, PyUnicode_FromString("pack"), pyRet, NULL);
              PyObject* pyErr = PyErr_Occurred();
              if (pyErr != NULL) {
                  PyErr_Print();
@@ -77,7 +77,7 @@ void Add_2_module::set_sysc_return(){
                  exit(-1);
              }
             char* bitsRet = PyBytes_AsString(pyBits);
-            sysc_return->write(bitsRet);
+            sysc_output->write(bitsRet);
         }
     }
 };
@@ -98,7 +98,7 @@ void Add_2_module::body(){
             }
         }
         if (this->pyC != Py_None) {
-            set_sysc_return();
+            set_sysc_output();
         }
         wait(1, SC_NS);
     }

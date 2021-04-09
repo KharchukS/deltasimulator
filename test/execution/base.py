@@ -8,11 +8,15 @@ import textwrap
 import unittest
 
 import deltalanguage as dl
+from deltalanguage.test.execution import PYSIMULATOR
 
 from deltasimulator.lib import build_graph
 
 
-class TestExecutionDSBase(unittest.TestCase):
+PYSIMULATOR = False
+
+
+class TestExecutionBaseDS(unittest.TestCase):
     """Test execution base for Deltasimulator, defines method for executing
     and checking test graphs.
     """
@@ -56,18 +60,22 @@ class TestExecutionDSBase(unittest.TestCase):
             Should contain the exact multistring expression we expect on
             stdout, excluding both SystemC prefix and postfix.
         """
-        self.files = set(
-            [file for pattern in files for file in glob.glob(pattern)])
+        self.files = set([file
+                          for pattern in files
+                          for file in glob.glob(pattern)])
         for file in self.files:
             shutil.move(file, f"{file}_temp")
         shutil.rmtree("__pycache__", ignore_errors=True)
         self.reqs = reqs
+
         with TemporaryDirectory() as build_dir:
             build_graph(program,
                         main_cpp=path.join(path.dirname(__file__), "main.cpp"),
                         build_dir=build_dir)
+
             # Setting the permission to run the file
             chmod(f"{build_dir}/main", 0o777)
+
             try:
                 # We disable the SYSTEMC Banner to clear the output by setting
                 # SYSTEMC_DISABLE_COPYRIGHT_MESSAGE
@@ -83,8 +91,15 @@ class TestExecutionDSBase(unittest.TestCase):
                 raise e
 
             if expect:
+                output_full = _proc.stdout.decode()
+
+                # remove Deltasimulator specific lines:
+                output_list = [line
+                               for line in output_full.split('\n')
+                               if not '_module::PyInit_sysc() called ' in line]
+
                 self.assertMultiLineEqual(
-                    _proc.stdout.decode(),
+                    '\n'.join(output_list),
                     self.sysc_output_prefix +
                     textwrap.dedent(expect) +
                     self.sysc_output_suffix

@@ -30,15 +30,15 @@ private:
     PyObject* type_sysc_opt;
     PyObject* get_sysc_opt();
     sc_dt::sc_bv<32> bits_sysc_opt;
-    PyObject* type_sysc_return;
-    sc_dt::sc_bv<32> bits_sysc_return;
-    void set_sysc_return();
+    PyObject* type_sysc_output;
+    sc_dt::sc_bv<32> bits_sysc_output;
+    void set_sysc_output();
 public:
     uint64_t no_inputs, no_outputs;
     sc_fifo<sc_dt::sc_bv<32>>* sysc_num;
     sc_fifo<sc_dt::sc_bv<32>>* sysc_val;
     sc_fifo<sc_dt::sc_bv<32>>* sysc_opt;
-    sc_fifo<sc_dt::sc_bv<32>>* sysc_return;
+    sc_fifo<sc_dt::sc_bv<32>>* sysc_output;
     int get_no_inputs() const;
     int get_no_outputs() const;
     void body();

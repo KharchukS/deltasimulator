@@ -9,10 +9,10 @@ class Return_1_0_module : public sc_module
 {
 private:
     uint64_t no_ins, no_outs;
-    void set_sysc_return();
+    void set_sysc_output();
 public:
     uint64_t no_inputs, no_outputs;
-    sc_fifo<sc_dt::sc_bv<64>>* sysc_return;
+    sc_fifo<sc_dt::sc_bv<64>>* sysc_output;
     int get_no_inputs() const;
     int get_no_outputs() const;
     void body();
@@ -31,10 +31,10 @@ class Return_2_1_module : public sc_module
 {
 private:
     uint64_t no_ins, no_outs;
-    void set_sysc_return();
+    void set_sysc_output();
 public:
     uint64_t no_inputs, no_outputs;
-    sc_fifo<sc_dt::sc_bv<64>>* sysc_return;
+    sc_fifo<sc_dt::sc_bv<64>>* sysc_output;
     int get_no_inputs() const;
     int get_no_outputs() const;
     void body();
@@ -61,14 +61,14 @@ private:
     PyObject* type_sysc_b;
     PyObject* get_sysc_b();
     sc_dt::sc_bv<64> bits_sysc_b;
-    PyObject* type_sysc_return;
-    sc_dt::sc_bv<64> bits_sysc_return;
-    void set_sysc_return();
+    PyObject* type_sysc_output;
+    sc_dt::sc_bv<64> bits_sysc_output;
+    void set_sysc_output();
 public:
     uint64_t no_inputs, no_outputs;
     sc_fifo<sc_dt::sc_bv<64>>* sysc_a;
     sc_fifo<sc_dt::sc_bv<64>>* sysc_b;
-    sc_fifo<sc_dt::sc_bv<64>>* sysc_return;
+    sc_fifo<sc_dt::sc_bv<64>>* sysc_output;
     int get_no_inputs() const;
     int get_no_outputs() const;
     void body();
@@ -232,11 +232,11 @@ print_then_exit_64_bit_3("print_then_exit_64_bit_3")
     // Wiring the clock to the Migen nodes
 
     // Wiring the Python to Python nodes
-    return_1_0.sysc_return = &wire_0_0_2_0;
+    return_1_0.sysc_output = &wire_0_0_2_0;
     add_64_bit_2.sysc_a = &wire_0_0_2_0;
-    return_2_1.sysc_return = &wire_1_0_2_1;
+    return_2_1.sysc_output = &wire_1_0_2_1;
     add_64_bit_2.sysc_b = &wire_1_0_2_1;
-    add_64_bit_2.sysc_return = &wire_2_0_3_0;
+    add_64_bit_2.sysc_output = &wire_2_0_3_0;
     print_then_exit_64_bit_3.sysc_n = &wire_2_0_3_0;
 
     // Wiring the Migen to Migen nodes
