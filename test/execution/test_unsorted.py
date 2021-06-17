@@ -156,11 +156,9 @@ class TestExecutionUnsorted(TestExecutionBaseDS):
                 df_file.write(serialized)
 
         else:
-            with self.assertRaises(RuntimeError):
-                self.check_executes_file(df_filename,
-                                         expect="[(1, 2), (3, 4, 5)]\n")
+            self.check_executes_file(df_filename,
+                                     exception=RuntimeError)
 
-    @unittest.skip("This test currently fails in a new container.")
     def test_constant_dependency(self):
         """Example where a constant node has a dependency.
 
@@ -172,12 +170,6 @@ class TestExecutionUnsorted(TestExecutionBaseDS):
         - Then run pip uninstall -y permutation
         - Set build_df_file to False
         - Run the actual test, make sure it passes
-
-        .. todo::
-            Currently this test fails if run in a completely new container.
-            This is because pip cannot install to a running program, and
-            constant nodes are currently deserialised during the build
-            process. This will be fixed in future work.
         """
         df_filename = path.join("test", "data", "constant.df")
 
@@ -205,8 +197,6 @@ class TestExecutionUnsorted(TestExecutionBaseDS):
             self.check_executes_file(df_filename,
                                      expect="saving 2\n",
                                      reqs=["permutation"])
-
-
 
 
 if __name__ == "__main__":

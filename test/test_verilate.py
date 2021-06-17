@@ -7,7 +7,7 @@ import dill
 from deltalanguage.data_types import Float, Int, UInt
 from deltalanguage.runtime import serialize_graph
 from deltalanguage.wiring import DeltaGraph
-from deltalanguage.test._utils import DUT1
+from deltalanguage.test._node_lib import DUT1
 
 from deltasimulator.build_tools import BuildArtifact
 from deltasimulator.build_tools.environments import VerilatorEnv

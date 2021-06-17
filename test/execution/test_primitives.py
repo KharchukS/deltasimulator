@@ -3,7 +3,7 @@ import unittest
 import deltalanguage as dl
 from deltalanguage.test.execution import TestExecutionPrimitives
 
-from test.execution.base import TestExecutionBaseDS, PYSIMULATOR
+from test.execution.base import TestExecutionBaseDS
 
 
 class TestExecutionPrimitivesDS(TestExecutionBaseDS,

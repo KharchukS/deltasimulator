@@ -3,7 +3,7 @@ import unittest
 import deltalanguage as dl
 from deltalanguage.test.execution import TestExecutionPerformance
 
-from test.execution.base import TestExecutionBaseDS, PYSIMULATOR
+from test.execution.base import TestExecutionBaseDS
 
 
 class TestExecutionPerformanceDS(TestExecutionBaseDS,

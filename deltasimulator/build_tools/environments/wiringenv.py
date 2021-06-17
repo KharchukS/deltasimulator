@@ -1,4 +1,5 @@
 import os.path as path
+import re
 from typing import Dict
 
 import dill
@@ -30,6 +31,8 @@ class WiringEnv(CPPEnv):
     ----------
     capnp_nodes : list
         Nodes in the graph, described as ``capnp`` objects.
+    node_bodies: list
+        List of integer IDs of bodies associated with each node.
     capnp_bodies : list
         Bodies for the nodes, described as ``capnp`` objects.
     node_headers : list
@@ -72,6 +75,7 @@ class WiringEnv(CPPEnv):
 
     def __init__(self,
                  capnp_nodes,
+                 node_bodies,
                  capnp_bodies,
                  node_headers,
                  node_objects,
@@ -83,6 +87,7 @@ class WiringEnv(CPPEnv):
         else:
             self._prog_name = "main"
         self._capnp_nodes = capnp_nodes
+        self._node_bodies = node_bodies
         self._capnp_bodies = capnp_bodies
         self._node_headers = node_headers
         self._node_objects = node_objects
@@ -175,16 +180,15 @@ class WiringEnv(CPPEnv):
         self._migen_nodes = []
         self._has_templates = False
 
-        for node in self._capnp_nodes:
+        for node, body_id in zip(self._capnp_nodes, self._node_bodies):
             if node.bodies:
-                body_type = self._capnp_bodies[node.bodies[0]].which()
+                body_type = self._capnp_bodies[body_id].which()
                 if body_type in ["python", "interactive"]:
                     self._py_nodes.append(node)
                 elif body_type == "migen":
                     self._migen_nodes.append(node)
             else:
                 self._has_templates = True
-
 
     def _get_adaptors(self, capnp_graph):
         """Determines which conversions are needed between nodes."""
@@ -200,29 +204,40 @@ class WiringEnv(CPPEnv):
 
         for wire in capnp_graph:
             if self._capnp_nodes[wire.srcNode].bodies:
-                src_body_index = self._capnp_nodes[wire.srcNode].bodies[0]
+                src_body_index = self._node_bodies[wire.srcNode]
                 src_body_type = self._capnp_bodies[src_body_index].which()
             else:
                 src_body_type = "template"
             if self._capnp_nodes[wire.destNode].bodies:
-                dest_body_index = self._capnp_nodes[wire.destNode].bodies[0]
+                dest_body_index = self._node_bodies[wire.destNode]
                 dest_body_type = self._capnp_bodies[dest_body_index].which()
             else:
                 dest_body_type = "template"
-            if (src_body_type in ["python", "interactive"]) and (dest_body_type in ["python", "interactive"]):
+            if (src_body_type in ["python", "interactive"]) and \
+               (dest_body_type in ["python", "interactive"]):
+
                 if src_body_type == "interactive":
-                    src_body = type(dill.loads(
-                        self._capnp_bodies[src_body_index].interactive.dillImpl))
+                    src_match = re.search(
+                        b"PyConstBody",
+                        self._capnp_bodies[src_body_index].interactive.dillImpl
+                    )
                 else:
-                    src_body = type(dill.loads(
-                        self._capnp_bodies[src_body_index].python.dillImpl))
+                    src_match = re.search(
+                        b"PyConstBody",
+                        self._capnp_bodies[src_body_index].python.dillImpl
+                    )
                 if dest_body_type == "interactive":
-                    dest_body = type(dill.loads(
-                        self._capnp_bodies[dest_body_index].interactive.dillImpl))
+                    dest_match = re.search(
+                        b"PyConstBody",
+                        self._capnp_bodies[dest_body_index].interactive.dillImpl
+                    )
                 else:
-                    dest_body = type(dill.loads(
-                        self._capnp_bodies[dest_body_index].python.dillImpl))
-                if (src_body is PyConstBody) and (dest_body is PyConstBody):
+                    dest_match = re.search(
+                        b"PyConstBody",
+                        self._capnp_bodies[dest_body_index].python.dillImpl
+                    )
+
+                if src_match and dest_match:
                     # Don't wire constant-to-constant nodes
                     num_const_wires += 1
                 else:

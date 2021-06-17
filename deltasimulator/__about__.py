@@ -54,6 +54,7 @@ __docs_url__ = "https://riverlane.github.io/deltasimulator"
 
 contributors = ["Kenton Barnes",
                 "Anton Buyskikh",
+                "Gabriel Gallardo",
                 "Marco Ghibaudi",
                 "Alex Moylett",
                 "Tom Parks",
@@ -64,7 +65,7 @@ __contributors__ = ", ".join(contributors)
 __contributors_lines__ = "\n".join(contributors)
 __email__ = "deltaflow@riverlane.com"
 
-version_info = (0, 6, 0)
+version_info = (0, 6, 1)
 """Tuple[int, int, int] : version information
 The three components of the version:
 ``major``, ``minor`` and ``micro``: Module level variable documented inline.

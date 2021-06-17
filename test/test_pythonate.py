@@ -96,12 +96,12 @@ class TestPythonator(unittest.TestCase):
         for node in program.nodes:
             if "add" in node.name:
                 with PythonatorEnv(program.bodies) as env:
-                    self.build_artifacts = env.pythonate(node)
+                    self.build_artifacts = env.pythonate(node, node.bodies[0])
                 asyncio.run(self.assert_build_correct("add"))
 
             elif "interactive" in node.name:
                 with PythonatorEnv(program.bodies) as env:
-                    self.build_artifacts = env.pythonate(node)
+                    self.build_artifacts = env.pythonate(node, node.bodies[0])
                 asyncio.run(self.assert_build_correct("interactive"))
 
     def test_const_exit(self):
@@ -112,7 +112,9 @@ class TestPythonator(unittest.TestCase):
         _, program = serialize_graph(test_graph)
 
         with PythonatorEnv(program.bodies) as env:
-            self.build_artifacts = env.pythonate(program.nodes[1])
+            self.build_artifacts = env.pythonate(
+                program.nodes[1], program.nodes[1].bodies[0]
+            )
 
         with self.assertRaises(ValueError):
             asyncio.run(self.build_artifacts["cpp"].data)

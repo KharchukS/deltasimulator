@@ -9,7 +9,7 @@ from deltalanguage.wiring import (DeltaBlock,
                                   Interactive,
                                   PythonNode)
 from deltalanguage.runtime import DeltaRuntimeExit, serialize_graph
-from deltalanguage.test._utils import DUT1
+from deltalanguage.test._node_lib import DUT1
 
 from deltasimulator.lib import generate_wiring, _wait_for_build
 

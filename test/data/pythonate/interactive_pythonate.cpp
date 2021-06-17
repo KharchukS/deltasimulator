@@ -105,18 +105,19 @@ sc_dt::sc_bv<32> bv_sysc_opt;
     }
     std::string ins (inport);
     if (ins == "num") {
-      singleton->sysc_num->read(bv_sysc_num);
+        singleton->sysc_num->read(bv_sysc_num);
 return PyObject_CallMethodObjArgs(singleton->type_sysc_num, PyUnicode_FromString("unpack"), PyBytes_FromStringAndSize(bv_sysc_num.to_string().c_str(), 32), NULL);
 }
     if (ins == "val") {
-      singleton->sysc_val->read(bv_sysc_val);
+        singleton->sysc_val->read(bv_sysc_val);
 return PyObject_CallMethodObjArgs(singleton->type_sysc_val, PyUnicode_FromString("unpack"), PyBytes_FromStringAndSize(bv_sysc_val.to_string().c_str(), 32), NULL);
 }
     if (ins == "opt") {
-      retval = singleton->sysc_opt->nb_read(bv_sysc_opt);
-      if (retval == false){
-          return Py_None;
-      }
+        if (singleton->sysc_opt == NULL) return Py_None;
+        retval = singleton->sysc_opt->nb_read(bv_sysc_opt);
+        if (retval == false){
+            return Py_None;
+        }
 return PyObject_CallMethodObjArgs(singleton->type_sysc_opt, PyUnicode_FromString("unpack"), PyBytes_FromStringAndSize(bv_sysc_opt.to_string().c_str(), 32), NULL);
 }
     PyErr_SetString(PyExc_TypeError, "Unrecognized argument");
@@ -131,10 +132,9 @@ PyObject* Pythonate_Interactive_5_module::sc_send(PyObject *self, PyObject *args
     }
     singleton->wait(1, SC_NS);
     std::string outs (outport);
-    singleton->sysc_output->write(data);
+    if (singleton->sysc_output != NULL) singleton->sysc_output->write(data);
     return Py_None;
 }
-
 
 void Pythonate_Interactive_5_module::body(){
         this->pyC = PyObject_CallMethodObjArgs(this->pBody, PyUnicode_FromString("eval"), this->pNode , NULL);

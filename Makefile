@@ -46,7 +46,7 @@ DRUN=docker run \
 	--interactive \
 	--privileged \
 	--rm \
-	--volume ${PWD}:/workdir \
+	--volume "${PWD}":/workdir \
 	--workdir /workdir \
 	--name=${CONTAINERNAME}
 

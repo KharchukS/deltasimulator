@@ -8,12 +8,8 @@ import textwrap
 import unittest
 
 import deltalanguage as dl
-from deltalanguage.test.execution import PYSIMULATOR
 
 from deltasimulator.lib import build_graph
-
-
-PYSIMULATOR = False
 
 
 class TestExecutionBaseDS(unittest.TestCase):
@@ -42,16 +38,28 @@ class TestExecutionBaseDS(unittest.TestCase):
             subprocess.check_call(
                 [sys.executable, '-m', 'pip', 'uninstall', '-y', req])
 
-    def check_executes_graph(self, graph, expect=None, files=[], reqs=[]):
+    def check_executes_graph(self, graph, expect=None, files=[], reqs=[],
+                             exception=None, excluded_body_tags=None,
+                             preferred_body_tags=None):
         _, program = dl.serialize_graph(graph, name="dut", files=files)
-        self.check_executes(program, expect=expect, files=files, reqs=reqs)
+        self.check_executes(program, expect=expect, files=files, reqs=reqs,
+                            exception=exception, 
+                            excluded_body_tags=excluded_body_tags, 
+                            preferred_body_tags=preferred_body_tags)
 
-    def check_executes_file(self, file, expect=None, files=[], reqs=[]):
+    def check_executes_file(self, file, expect=None, files=[], reqs=[],
+                            exception=None, excluded_body_tags=None,
+                            preferred_body_tags=None):
         with open(file, "rb") as df_file:
             program = dl.deserialize_graph(df_file.read())
-        self.check_executes(program, expect=expect, files=files, reqs=reqs)
+        self.check_executes(program, expect=expect, files=files, reqs=reqs,
+                            exception=exception, 
+                            excluded_body_tags=excluded_body_tags, 
+                            preferred_body_tags=preferred_body_tags)
 
-    def check_executes(self, program, expect: str = None, files=[], reqs=[]):
+    def check_executes(self, program, expect: str = None, files=[], reqs=[],
+                       exception=None, excluded_body_tags=None,
+                       preferred_body_tags=None):
         """Build SystemC program and executes them in temp directory.
 
         Parameters
@@ -59,6 +67,13 @@ class TestExecutionBaseDS(unittest.TestCase):
         expect : str
             Should contain the exact multistring expression we expect on
             stdout, excluding both SystemC prefix and postfix.
+        exception : Exception
+            Exception thrown by the simulator at _any_ stage
+            (includes building, deployment, execution, etc.).
+        excluded_body_tags
+            Body tags to exclude.
+        preferred_body_tags
+            Body tags to prefer.
         """
         self.files = set([file
                           for pattern in files
@@ -69,9 +84,23 @@ class TestExecutionBaseDS(unittest.TestCase):
         self.reqs = reqs
 
         with TemporaryDirectory() as build_dir:
-            build_graph(program,
-                        main_cpp=path.join(path.dirname(__file__), "main.cpp"),
-                        build_dir=build_dir)
+            try:
+                build_graph(
+                    program,
+                    main_cpp=path.join(path.dirname(__file__),
+                                       "main.cpp"),
+                    build_dir=build_dir, 
+                    excluded_body_tags=excluded_body_tags,
+                    preferred_body_tags=preferred_body_tags
+                )
+
+            except Exception as e:
+                if exception is not None and isinstance(e, exception):
+                    print("Expected error caught on the building stage")
+                    return
+                print("Unexpected error caught on the building stage")
+                print(sys.exc_info()[0])
+                raise
 
             # Setting the permission to run the file
             chmod(f"{build_dir}/main", 0o777)
@@ -86,9 +115,20 @@ class TestExecutionBaseDS(unittest.TestCase):
                                        check=True,
                                        stdout=subprocess.PIPE,
                                        env=env)
+
             except subprocess.CalledProcessError as e:
-                print(f"Failure in running: {e.returncode} - {e.output}")
-                raise e
+                if exception == RuntimeError:
+                    self.assertEqual(e.returncode, 255)
+                    print("Expected error caught on the execution stage")
+                else:
+                    print("Unexpected error caught on the execution stage")
+                    print(f"{e.returncode} - {e.output}")
+                    raise e
+
+            except:
+                print("Unexpected error caught on the execution stage")
+                print(sys.exc_info()[0])
+                raise
 
             if expect:
                 output_full = _proc.stdout.decode()

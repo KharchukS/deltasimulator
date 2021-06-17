@@ -7,22 +7,22 @@ sysc_val = dill.loads(b'...')
 sysc_opt = dill.loads(b'...')
 sysc_output = dill.loads(b'...')
 class SysBridgeNode:
-    def __init__(self): 
-        self.in_queues = dict.fromkeys(["num", "val", "opt"]) 
+    def __init__(self):
+        self.in_queues = dict.fromkeys(["num", "val", "opt"])
     def send(self, output=None):
         if output is not None:
             pythonate_interactive_5_module_sysc.send("output", sysc_output.pack(output))
     def receive(self, *args: str):
-        if args: 
+        if args:
             in_queue = {name: in_q for name, in_q in self.in_queues.items() if name in args}
-        else: 
-            in_queue = self.in_queues 
-        values = {} 
-        if in_queue: 
-             for req in in_queue: 
-                 values[req] = pythonate_interactive_5_module_sysc.receive(req)
-        if len(values) == 1 and args: 
-            return values[list(values)[0]] 
-        else: 
+        else:
+            in_queue = self.in_queues
+        values = {}
+        if in_queue:
+            for req in in_queue:
+                values[req] = pythonate_interactive_5_module_sysc.receive(req)
+        if len(values) == 1 and args:
+            return values[list(values)[0]]
+        else:
             return values
 node = SysBridgeNode()

@@ -1,5 +1,7 @@
 import asyncio
+import dill
 from os import path
+from typing import List
 import subprocess
 import sys
 import zipfile
@@ -13,13 +15,21 @@ from deltasimulator.build_tools.environments import (PythonatorEnv,
 from capnp.lib.capnp import _DynamicStructBuilder
 
 
-def generate_wiring(program: _DynamicStructBuilder):
+def generate_wiring(
+    program: _DynamicStructBuilder,
+    excluded_body_tags: List[object] = None,
+    preferred_body_tags: List[object] = None
+):
     """Creates the wiring of the nodes defined in a program.
 
     Parameters
     ----------
     program: _DynamicStructBuilder
         A Deltaflow serialized graph.
+    excluded_body_tags : typing.List[object]
+        typing.List of keys to exclude from selection
+    preferred_body_tags : typing.List[object]
+        typing.List of keys to be preferred for selection if available
 
     Returns
     -------
@@ -38,17 +48,45 @@ def generate_wiring(program: _DynamicStructBuilder):
     node_modules = []
     node_objects = []
     node_inits = []
+    exclusions = excluded_body_tags if excluded_body_tags is not None else []
+    preferred = preferred_body_tags if preferred_body_tags is not None else []
     verilated_o = None
 
+    exclusions = set(excluded_body_tags if excluded_body_tags is not None else [])
+    preferred = set(preferred_body_tags if preferred_body_tags is not None else [])
+
+    selected_node_bodies = []
     for node in program.nodes:
+        body_id = None
         if node.bodies:
-            # If there are no node.bodies then it is what was previously  
+            # If there are no node.bodies then it is what was previously
             # called a template node and cannot be pythonated
-            which_body = program.bodies[node.bodies[0]].which()
+
+            not_excluded_list = []
+            for body_id in node.bodies:
+                # If body has no excluded tag
+                body_tags = set(dill.loads(program.bodies[body_id].tags))
+                if not exclusions & body_tags:
+                    not_excluded_list.append(body_id)
+
+            if not_excluded_list:
+                for body_id in not_excluded_list:
+                    # If body has a preferred tag
+                    body_tags = set(dill.loads(program.bodies[body_id].tags))
+                    if preferred & body_tags:
+                        break  # use the first body_id where there is a match
+                else:
+                    body_id = not_excluded_list[0]
+            else:
+                raise AttributeError(
+                    f"All usable bodies for node '{node.name}' have been excluded!"
+                )
+
+            which_body = program.bodies[body_id].which()
 
             if which_body in ['python', 'interactive']:
                 with PythonatorEnv(program.bodies) as env:
-                    build_artifacts = env.pythonate(node)
+                    build_artifacts = env.pythonate(node, body_id)
                     node_headers.append(build_artifacts["h"])
                     if "py" in build_artifacts:
                         node_bodies.append(build_artifacts["py"])
@@ -59,8 +97,7 @@ def generate_wiring(program: _DynamicStructBuilder):
                 # This part is adopted from initial-example:
                 top_v = BuildArtifact(
                     name=f"{node.name}.v",
-                    data=program.bodies[node.bodies[0]
-                                        ].migen.verilog.encode("utf8")
+                    data=program.bodies[body_id].migen.verilog.encode("utf8")
                 )
 
                 with VerilatorEnv() as env:
@@ -73,7 +110,10 @@ def generate_wiring(program: _DynamicStructBuilder):
                 if not verilated_o:
                     verilated_o = build_artifacts["verilated.o"]
 
+        selected_node_bodies.append(body_id)
+
     with WiringEnv(program.nodes,
+                   selected_node_bodies,
                    program.bodies,
                    node_headers,
                    node_objects,
@@ -155,7 +195,13 @@ def _compile_and_link(program_name: str, wiring: list, main_cpp: str):
     return main
 
 
-def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
+def build_graph(
+    program: _DynamicStructBuilder,
+    main_cpp: str,
+    build_dir: str,
+    excluded_body_tags: List[object] = None,
+    preferred_body_tags: List[object] = None
+):
     """Generates an executable to be stored in a build directory.
 
     Parameters
@@ -167,6 +213,10 @@ def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
         defines an implementation for eventual templatedNodes.
     build_dir: str
         The target directory in which to store the output.
+    excluded_body_tags : typing.List[object]
+        typing.List of keys to exclude from selection
+    preferred_body_tags : typing.List[object]
+        typing.List of keys to be preferred for selection if available
 
     Examples
     --------
@@ -232,8 +282,14 @@ def build_graph(program: _DynamicStructBuilder, main_cpp: str, build_dir: str):
         except subprocess.CalledProcessError as e:
             raise RuntimeError("Error with installing required dependencies:",
                                e.output) from e
+    
+    try: 
+        node_bodies, node_inits, wiring = generate_wiring(
+            program, excluded_body_tags, preferred_body_tags
+        )
+    except AttributeError as ex:
+        raise RuntimeError('Wiring could not be generated') from ex 
 
-    node_bodies, node_inits, wiring = generate_wiring(program)
     main = _compile_and_link(program.name, wiring, main_cpp)
     _copy_artifacts(main, node_inits, node_bodies, build_dir)
 

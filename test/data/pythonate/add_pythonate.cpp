@@ -70,12 +70,12 @@ void Add_2_module::set_sysc_output(){
         PyObject* pyRet = this->pyC;
         if (pyRet != Py_None){
             PyObject* pyBits = PyObject_CallMethodObjArgs(this->type_sysc_output, PyUnicode_FromString("pack"), pyRet, NULL);
-             PyObject* pyErr = PyErr_Occurred();
-             if (pyErr != NULL) {
-                 PyErr_Print();
-                 PyErr_Clear();
-                 exit(-1);
-             }
+            PyObject* pyErr = PyErr_Occurred();
+            if (pyErr != NULL) {
+                PyErr_Print();
+                PyErr_Clear();
+                exit(-1);
+            }
             char* bitsRet = PyBytes_AsString(pyBits);
             sysc_output->write(bitsRet);
         }

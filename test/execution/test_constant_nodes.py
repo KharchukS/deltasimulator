@@ -3,12 +3,11 @@ import unittest
 import deltalanguage as dl
 from deltalanguage.test.execution import TestExecutionConstantNodes
 
-from test.execution.base import TestExecutionBaseDS, PYSIMULATOR
+from test.execution.base import TestExecutionBaseDS
 
 
 class TestExecutionConstantNodesDS(TestExecutionBaseDS,
                                    TestExecutionConstantNodes):
-
     pass
 
 

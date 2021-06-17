@@ -7,11 +7,14 @@ import textwrap
 
 import dill
 
+from deltalanguage.runtime import DeltaRuntimeExit
 from deltalanguage.wiring import PyConstBody, PyInteractiveBody
 
 from .cppenv import CPPEnv
 from deltasimulator.build_tools import BuildArtifact, cogify
 from deltasimulator.build_tools.utils import multiple_waits
+
+indent_prefix = "    "
 
 
 class PythonatorEnv(CPPEnv):
@@ -137,56 +140,84 @@ class PythonatorEnv(CPPEnv):
             Returns True on completion.
         """
 
-        # df_ prefix to variables used to avoid namespace clashes with cog
-        py_tmpl = """
-        import dill
-        /*[[[cog
-            if body_type is PyInteractiveBody:
-                cog.outl(f"import {module_name.lower()}_sysc")
-            cog.outl(f"body = dill.loads({df_body})")
-            for port in top_p.inPorts:
-                cog.outl(f"{self.get_sysc_port_name(port)} = dill.loads({port.type})")
-            for port in top_p.outPorts:
-                cog.outl(f"{self.get_sysc_port_name(port)} = dill.loads({port.type})")
-            if body_type is PyInteractiveBody:
-                cog.outl("class SysBridgeNode:")
-                cog.outl("    def __init__(self): ")
-                inports_list = []
+        body_file = path.join(self.tempdir, f"{top_p.name}.py")
+        module_name = self.get_module_name(top_p)
+
+        py_tmpl = "\nimport dill\n"
+
+        if body_type is PyInteractiveBody:
+            py_tmpl += f"import {module_name.lower()}_sysc\n"
+
+        py_tmpl += f"body = dill.loads({df_body})\n"
+        for port in top_p.inPorts:
+            py_tmpl += f"{self.get_sysc_port_name(port)} = dill.loads({port.type})\n"
+        for port in top_p.outPorts:
+            py_tmpl += f"{self.get_sysc_port_name(port)} = dill.loads({port.type})\n"
+        if body_type is PyInteractiveBody:
+            py_tmpl += f"class SysBridgeNode:\n"
+            inports_list = []
+            if len(top_p.inPorts) > 0:
+                py_tmpl += textwrap.indent(f"def __init__(self):\n", indent_prefix)
                 for port in top_p.inPorts:
                     inports_list.append(port.name)
                 inports_str = '[' + '"{0}"'.format('", "'.join(inports_list)) + ']'
                 if (len(inports_list) > 0):
-                    cog.outl(f"        self.in_queues = dict.fromkeys({inports_str}) ")
-                send_args_str = 'self' + ''.join(', ' + port.name + '=None' for port in top_p.outPorts)
-                cog.outl(f"    def send({send_args_str}):")
-                for port in top_p.outPorts:
-                    cog.outl(f"        if {port.name} is not None:")
-                    cog.outl(f"            {module_name.lower()}_sysc.send(\\"{port.name}\\", {self.get_sysc_port_name(port)}.pack({port.name}))")
-                cog.outl("    def receive(self, *args: str):")
-                if (len(inports_list) == 0):
-                    cog.outl("        raise RuntimeError ")
-                cog.outl("        if args: ")
-                cog.outl("            in_queue = {name: in_q for name, in_q in self.in_queues.items() if name in args}")
-                cog.outl("        else: ")
-                cog.outl("            in_queue = self.in_queues ")
-                cog.outl("        values = {} ")
-                cog.outl("        if in_queue: ")
-                cog.outl("             for req in in_queue: ")
-                cog.outl(f"                 values[req] = {module_name.lower()}_sysc.receive(req)")
-                cog.outl("        if len(values) == 1 and args: ")
-                cog.outl("            return values[list(values)[0]] ")
-                cog.outl("        else: ")
-                cog.outl("            return values")
-                cog.outl("node = SysBridgeNode()")
-        ]]]*/
-        //[[[end]]]
-        """
-        body_index = top_p.bodies[0]
-        body_file = path.join(self.tempdir, f"{top_p.name}.py")
-        module_name = self.get_module_name(top_p)
+                    py_tmpl += textwrap.indent(
+                        f"self.in_queues = dict.fromkeys({inports_str})\n",
+                        indent_prefix * 2
+                    )
+            send_args_str = 'self' + ''.join(
+                ', ' + port.name + '=None' for port in top_p.outPorts
+            )
+            py_tmpl += textwrap.indent(
+                f"def send({send_args_str}):\n", indent_prefix
+            )
+            for port in top_p.outPorts:
+                py_tmpl += textwrap.indent(
+                    f"if {port.name} is not None:\n", indent_prefix * 2
+                )
+                py_tmpl += textwrap.indent(
+                    f"{module_name.lower()}_sysc.send(\"{port.name}\", " +
+                    f"{self.get_sysc_port_name(port)}.pack({port.name}))\n",
+                    indent_prefix * 3
+                )
+            py_tmpl += textwrap.indent(
+                f"def receive(self, *args: str):\n", indent_prefix
+            )
+            if (len(inports_list) == 0):
+                py_tmpl += textwrap.indent(
+                    f"raise RuntimeError\n", indent_prefix * 2
+                )
+            py_tmpl += textwrap.indent(f"if args:\n", indent_prefix * 2)
+            py_tmpl += textwrap.indent(
+                "in_queue = {name: in_q for name, in_q in self.in_queues.items() if name in args}\n",
+                indent_prefix * 3
+            )
+            py_tmpl += textwrap.indent(f"else:\n", indent_prefix * 2)
+            py_tmpl += textwrap.indent(
+                f"in_queue = self.in_queues\n", indent_prefix * 3
+            )
+            py_tmpl += textwrap.indent("values = {}\n", indent_prefix * 2)
+            py_tmpl += textwrap.indent(f"if in_queue:\n", indent_prefix * 2)
+            py_tmpl += textwrap.indent(
+                f"for req in in_queue:\n", indent_prefix * 3
+            )
+            py_tmpl += textwrap.indent(
+                f"values[req] = {module_name.lower()}_sysc.receive(req)\n",
+                indent_prefix * 4
+            )
+            py_tmpl += textwrap.indent(
+                f"if len(values) == 1 and args:\n", indent_prefix * 2
+            )
+            py_tmpl += textwrap.indent(
+                f"return values[list(values)[0]]\n", indent_prefix * 3
+            )
+            py_tmpl += textwrap.indent(f"else:\n", indent_prefix * 2)
+            py_tmpl += textwrap.indent(f"return values\n", indent_prefix * 3)
+            py_tmpl += f"node = SysBridgeNode()\n"
 
-        with open(body_file, "wb") as py_file:
-            py_file.write(cogify(py_tmpl, globals=dict(globals(), **locals())))
+        with open(body_file, "w") as py_file:
+            py_file.write(py_tmpl)
         return True
 
     def _get_py(self, top_p, after):
@@ -225,77 +256,68 @@ class PythonatorEnv(CPPEnv):
             Returns True upon completion.
         """
 
-        h_tmpl = """\
-        //[[[cog cog.outl(f"#ifndef __{top_p.name.upper()}_MODULE__"); cog.outl(f"#define __{top_p.name.upper()}_MODULE__") ]]]
-        //[[[end]]]
-
-        #include <string>
-        #include <systemc>
-        using namespace sc_core;
-        /*[[[cog
-            if body_type is not PyConstBody:
-                cog.outl('#include "Python.h"')
-        ]]]*/
-        //[[[end]]]
-
-        //[[[cog cog.outl(f"class {module_name} : public sc_module") ]]]
-        //[[[end]]]
-        {
-        private:
-            /*[[[cog
-                if body_type is not PyConstBody:
-                    cog.outl("PyObject *pBody, *pName, *pModule, *pyC, *pExit;")
-                if body_type is PyInteractiveBody:
-                    cog.outl("PyObject *runtimeModule, *pNode;")
-                    cog.outl("static PyObject* sc_receive(PyObject *self, PyObject *args);")
-                    cog.outl("static PyObject* sc_send(PyObject *self, PyObject *args);")
-                    cog.outl("static PyObject* PyInit_sysc(void);")
-                    cog.outl("static PyMethodDef SysCMethods[];")
-                    cog.outl("static PyModuleDef SysCModule;")
-                    cog.outl(f"static {module_name}* singleton;")
-                    cog.outl("void init();")
-                    cog.outl("void store();")
-                    cog.outl("void run();")
-            ]]]*/
-            //[[[end]]]
-            uint64_t no_ins, no_outs;
-            /*[[[cog
-                if body_type is not PyConstBody:
-                    for port in top_p.inPorts:
-                        cog.outl(f"PyObject* type_{self.get_sysc_port_name(port)};")
-                        cog.outl(f"PyObject* get_{self.get_sysc_port_name(port)}();")
-                        cog.outl(f"{self.as_c_type(port.type)} bits_{self.get_sysc_port_name(port)};")
-                for port in top_p.outPorts:
-                    if body_type is not PyConstBody:
-                        cog.outl(f"PyObject* type_{self.get_sysc_port_name(port)};")
-                        cog.outl(f"{self.as_c_type(port.type)} bits_{self.get_sysc_port_name(port)};")
-                    cog.outl(f"void set_{self.get_sysc_port_name(port)}();")
-            ]]]*/
-            //[[[end]]]
-        public:
-            uint64_t no_inputs, no_outputs;
-            /*[[[cog
-                    if body_type is not PyConstBody:
-                        for port in top_p.inPorts:
-                            cog.outl(f"sc_fifo<{self.as_c_type(port.type)}>* {self.get_sysc_port_name(port)};")
-                    for port in top_p.outPorts:
-                        cog.outl(f"sc_fifo<{self.as_c_type(port.type)}>* {self.get_sysc_port_name(port)};")
-            ]]]*/
-            //[[[end]]]
-            int get_no_inputs() const;
-            int get_no_outputs() const;
-            void body();
-            //[[[cog cog.outl(f"SC_HAS_PROCESS({module_name});"); cog.outl(f"{module_name}(sc_module_name name);") ]]]
-            //[[[end]]]
-        };
-        #endif
-        """
-
         module_name = self.get_module_name(top_p)
         h_name = path.join(self.tempdir, f"{top_p.name}.h")
 
-        with open(h_name, "wb") as out_file:
-            out_file.write(cogify(h_tmpl, globals=dict(globals(), **locals())))
+        h_tmpl = f"#ifndef __{top_p.name.upper()}_MODULE__\n"
+        h_tmpl += f"#define __{top_p.name.upper()}_MODULE__\n\n"
+
+        h_tmpl += f"#include <string>\n"
+        h_tmpl += f"#include <systemc>\n"
+        h_tmpl += f"using namespace sc_core;\n"
+
+        if body_type is not PyConstBody:
+            h_tmpl += '#include "Python.h"\n'
+
+        h_tmpl += f"\nclass {module_name} : public sc_module\n"
+        h_tmpl += "{\nprivate:\n"
+
+        h_tmpl_ind = ""
+
+        if body_type is not PyConstBody:
+            h_tmpl_ind += "PyObject *pBody, *pName, *pModule, *pyC, *pExit;\n"
+        if body_type is PyInteractiveBody:
+            h_tmpl_ind += "PyObject *runtimeModule, *pNode;\n"
+            h_tmpl_ind += "static PyObject* sc_receive(PyObject *self, PyObject *args);\n"
+            h_tmpl_ind += "static PyObject* sc_send(PyObject *self, PyObject *args);\n"
+            h_tmpl_ind += "static PyObject* PyInit_sysc(void);\n"
+            h_tmpl_ind += "static PyMethodDef SysCMethods[];\n"
+            h_tmpl_ind += "static PyModuleDef SysCModule;\n"
+            h_tmpl_ind += f"static {module_name}* singleton;\n"
+            h_tmpl_ind += "void init();\n"
+            h_tmpl_ind += "void store();\n"
+            h_tmpl_ind += "void run();\n"
+
+        h_tmpl_ind += "uint64_t no_ins, no_outs;\n"
+
+        if body_type is not PyConstBody:
+            for port in top_p.inPorts:
+                h_tmpl_ind += f"PyObject* type_{self.get_sysc_port_name(port)};\n"
+                h_tmpl_ind += f"PyObject* get_{self.get_sysc_port_name(port)}();\n"
+                h_tmpl_ind += f"{self.as_c_type(port.type)} bits_{self.get_sysc_port_name(port)};\n"
+        for port in top_p.outPorts:
+            if body_type is not PyConstBody:
+                h_tmpl_ind += f"PyObject* type_{self.get_sysc_port_name(port)};\n"
+                h_tmpl_ind += f"{self.as_c_type(port.type)} bits_{self.get_sysc_port_name(port)};\n"
+            h_tmpl_ind += f"void set_{self.get_sysc_port_name(port)}();\n"
+
+        h_tmpl += textwrap.indent(h_tmpl_ind, indent_prefix) + "public:\n"
+        h_tmpl_ind = "uint64_t no_inputs, no_outputs;\n"
+        if body_type is not PyConstBody:
+            for port in top_p.inPorts:
+                h_tmpl_ind += f"sc_fifo<{self.as_c_type(port.type)}>* {self.get_sysc_port_name(port)};\n"
+        for port in top_p.outPorts:
+            h_tmpl_ind += f"sc_fifo<{self.as_c_type(port.type)}>* {self.get_sysc_port_name(port)};\n"
+
+        h_tmpl_ind += "int get_no_inputs() const;\n"
+        h_tmpl_ind += "int get_no_outputs() const;\n"
+        h_tmpl_ind += "void body();\n"
+        h_tmpl_ind += f"SC_HAS_PROCESS({module_name});\n"
+        h_tmpl_ind += f"{module_name}(sc_module_name name);\n"
+        h_tmpl += textwrap.indent(h_tmpl_ind, indent_prefix) + "};\n#endif\n"
+
+        with open(h_name, "w") as out_file:
+            out_file.write(h_tmpl)
         return True
 
     def _get_h(self, top_p, after):
@@ -316,7 +338,8 @@ class PythonatorEnv(CPPEnv):
         return BuildArtifact(f"{top_p.name}.h", self, after=after)
 
     async def _make_cpp(self, top_p,
-                        body_type  # pylint: disable=unused-argument
+                        body_type,  # pylint: disable=unused-argument
+                        body_id
                         ):
         """Construct the node's SystemC module.
 
@@ -333,289 +356,337 @@ class PythonatorEnv(CPPEnv):
         bool
             Returns True upon completion.
         """
-        cpp_tmpl = """\
-        //[[[cog cog.outl('#include "' + top_p.name + '.h"') ]]]
-        //[[[end]]]
 
-        /*[[[cog
-        if body_type is PyInteractiveBody:
-            cog.outl(f"{module_name}* {module_name}::singleton = nullptr;")
-        ]]]*/
-        //[[[end]]]
-        //[[[cog cog.outl(f"{module_name}::{module_name}(sc_module_name name): sc_module(name) {{") ]]]
-        //[[[end]]]
-            /*[[[cog
-            if body_type is PyInteractiveBody:
-                cog.outl("if (singleton == nullptr) {")
-                cog.outl("singleton = this;")
-                cog.outl("} else {")
-                cog.outl(f"std::cerr << \\"attempted to construct multiple python for {module_name} modules - not supported!\\" << std::endl;")
-                cog.outl("exit(-1);")
-                cog.outl("}")
-            if body_type is PyConstBody:
-                cog.outl('no_ins = 0;')
-            else:
-                cog.outl(f'no_ins = {len(top_p.inPorts)};')
-            cog.outl(f'no_outs = {len(top_p.outPorts)};')
-            if body_type is PyInteractiveBody:
-                cog.outl(f'const char* sc_module_name = "{module_name.lower()}_sysc";')
-                cog.outl('PyImport_AddModule(sc_module_name);')
-                cog.outl('PyObject* sys_modules = PyImport_GetModuleDict();')
-                cog.outl('PyObject* module = PyInit_sysc();')
-                cog.outl('PyDict_SetItemString(sys_modules, sc_module_name, module);')
-            if body_type is not PyConstBody:
-                cog.outl(f'this->pName = PyUnicode_DecodeFSDefault("{top_p.name}");')
-                cog.outl("this->pModule = PyImport_Import(this->pName);")
-                cog.outl("if (this->pModule == NULL) {")
-                cog.outl("if (PyErr_Occurred()) PyErr_Print();")
-                cog.outl(f'std::cout << "failed to import {top_p.name} python module." << std::endl;')
-                cog.outl("exit(-1);")
-                cog.outl("}")
-                cog.outl("this->pBody = PyObject_GetAttrString(this->pModule, \\"body\\");")
-                cog.outl("if (this->pBody == NULL) {")
-                cog.outl("if (PyErr_Occurred()) PyErr_Print();")
-                cog.outl(f'std::cout << "failed to import {top_p.name} python body." << std::endl;')
-                cog.outl("exit(-1);")
-                cog.outl("}")
-                if body_type is PyInteractiveBody:
-                    cog.outl("this->pNode = PyObject_GetAttrString(this->pModule, \\"node\\");")
-                    cog.outl("if (this->pBody == NULL) {")
-                    cog.outl("if (PyErr_Occurred()) PyErr_Print();")
-                    cog.outl(f'std::cout << "failed to import {top_p.name} python interactive node." << std::endl;')
-                    cog.outl("exit(-1);")
-                    cog.outl("}")
-                cog.outl("PyObject *runtimeModule = PyImport_Import(PyUnicode_DecodeFSDefault(\\"deltalanguage.runtime\\"));")
-                cog.outl("if (runtimeModule == NULL) {")
-                cog.outl("if (PyErr_Occurred()) PyErr_Print();")
-                cog.outl(f'std::cout << "failed to import deltalanguage runtime in {top_p.name}." << std::endl;')
-                cog.outl("exit(-1);")
-                cog.outl("}")
-                cog.outl("this->pExit = PyObject_GetAttrString(runtimeModule, \\"DeltaRuntimeExit\\");")
-                cog.outl("if (this->pExit == NULL) {")
-                cog.outl("if (PyErr_Occurred()) PyErr_Print();")
-                cog.outl(f'std::cout << "failed to import exit exception object from deltalanguage runtime in {top_p.name}." << std::endl;')
-                cog.outl("exit(-1);")
-                cog.outl("}")
-                for port in top_p.inPorts:
-                    cog.outl(f"this->type_{self.get_sysc_port_name(port)} = PyObject_GetAttrString(this->pModule, \\"{self.get_sysc_port_name(port)}\\");")
-                    cog.outl(f"if (this->type_{self.get_sysc_port_name(port)} == NULL){{")
-                    cog.outl("if (PyErr_Occurred()) PyErr_Print();")
-                    cog.outl(f"std::cout << \\"failed to import type for in port {port.name} in {top_p.name}.\\" << std::endl;")
-                    cog.outl("exit(-1);")
-                    cog.outl("}")
-                    cog.outl(f"{self.get_sysc_port_name(port)} = NULL;")
-                for port in top_p.outPorts:
-                    if body_type is not PyConstBody:
-                        cog.outl(f"this->type_{self.get_sysc_port_name(port)} = PyObject_GetAttrString(this->pModule, \\"{self.get_sysc_port_name(port)}\\");")
-                        cog.outl(f"if (this->type_{self.get_sysc_port_name(port)} == NULL){{")
-                        cog.outl("if (PyErr_Occurred()) PyErr_Print();")
-                        if port.name:
-                            cog.outl(f"std::cout << \\"failed to import type for out port {port.name} in {top_p.name}.\\" << std::endl;")
-                        else:
-                            cog.outl(f"std::cout << \\"failed to import return type in {top_p.name}.\\" << std::endl;")
-                        cog.outl("exit(-1);")
-                        cog.outl("}")
-                    cog.outl(f"{self.get_sysc_port_name(port)} = NULL;")
-            if body_type is not PyConstBody:
-                cog.outl("Py_XDECREF(this->pName);")
-                cog.outl("Py_XDECREF(this->pModule);")
-            ]]]*/
-            //[[[end]]]
-            SC_THREAD(body);
-        }
-
-        /*[[[cog
-            if body_type not in [PyConstBody, PyInteractiveBody]:
-                for port in top_p.inPorts:
-                    port_type = self.load_port_type(port)
-                    cog.outl(f"PyObject* {module_name}::get_{self.get_sysc_port_name(port)}(){{")
-                    cog.outl(f"    if ({self.get_sysc_port_name(port)} == NULL) return Py_None;")
-                    if port.optional:
-                        cog.outl(f"    if (!{self.get_sysc_port_name(port)}->nb_read(bits_{self.get_sysc_port_name(port)})) return Py_None;")
-                    else:
-                        cog.outl(f"    bits_{self.get_sysc_port_name(port)} = {self.get_sysc_port_name(port)}->read();")
-                    cog.outl(f"    return PyObject_CallMethodObjArgs(this->type_{self.get_sysc_port_name(port)}, PyUnicode_FromString(\\"unpack\\"), PyBytes_FromStringAndSize(bits_{self.get_sysc_port_name(port)}.to_string().c_str(), {port_type.size}), NULL);")
-                    cog.outl("};")
-            if body_type is PyInteractiveBody:
-                cog.outl(f"PyMethodDef {module_name}::SysCMethods[] = {{")
-                cog.outl("{\\"receive\\", sc_receive, METH_VARARGS, \\"Receives data from the systemC interface\\"},")
-                cog.outl("{\\"send\\", sc_send, METH_VARARGS, \\"Sends data to the systemC interface\\"},")
-                cog.outl("{NULL, NULL, 0, NULL}")
-                cog.outl("};")
-
-                cog.outl(f"PyModuleDef {module_name}::SysCModule = {{")
-                cog.outl(f"PyModuleDef_HEAD_INIT, \\"{module_name.lower()}_sysc\\", NULL, -1, SysCMethods,")
-                cog.outl("NULL, NULL, NULL, NULL")
-                cog.outl("};")
-
-                cog.outl(f"PyObject* {module_name}::PyInit_sysc(void)")
-                cog.outl("{")
-                cog.outl(f"std::cout << \\"{module_name}::PyInit_sysc() called \\" << std::endl;")
-                cog.outl("return PyModule_Create(&SysCModule);")
-                cog.outl("}")
-
-                cog.outl(f"PyObject* {module_name}::sc_receive(PyObject *self, PyObject *args){{")
-                cog.outl('    const char * inport; ')
-                cog.outl('    bool retval; ')
-                for port in top_p.inPorts:
-                    cog.outl(f"{self.as_c_type(port.type)} bv_{self.get_sysc_port_name(port)};")
-                cog.outl('    if (!PyArg_ParseTuple(args, "s", &inport )) {')
-                cog.outl('        std::cout << "sc_receive::ERROR" << std::endl;')
-                cog.outl('        return NULL;')
-                cog.outl('    }')
-                cog.outl('    std::string ins (inport);')
-                num_ports = len(top_p.inPorts)
-                for port in top_p.inPorts:
-                    port_type = self.load_port_type(port)
-                    if num_ports > 1:
-                        cog.outl(f"    if (ins == \\"{port.name}\\") {{")
-                    if port.optional:
-                        cog.outl(f"      retval = singleton->{self.get_sysc_port_name(port)}->nb_read(bv_{self.get_sysc_port_name(port)});")
-                        cog.outl("      if (retval == false){")
-                        cog.outl("          return Py_None;")
-                        cog.outl("      }")
-                    else :
-                        cog.outl(f"      singleton->{self.get_sysc_port_name(port)}->read(bv_{self.get_sysc_port_name(port)});")
-                    cog.outl(f"return PyObject_CallMethodObjArgs(singleton->type_{self.get_sysc_port_name(port)}, PyUnicode_FromString(\\"unpack\\"), PyBytes_FromStringAndSize(bv_{self.get_sysc_port_name(port)}.to_string().c_str(), {port_type.size}), NULL);")
-                    if num_ports > 1:
-                        cog.outl("}")
-                cog.outl('    PyErr_SetString(PyExc_TypeError, "Unrecognized argument");')
-                cog.outl('    return (PyObject *) NULL;')
-                cog.outl("}")
-
-                cog.outl(f"PyObject* {module_name}::sc_send(PyObject *self, PyObject *args){{")
-                cog.outl('    const char * outport;')
-                cog.outl('    const char * data;')
-                cog.outl('    if (!PyArg_ParseTuple(args, "ss*", &outport, &data)) {')
-                cog.outl('        std::cout << "sc_send::ERROR" << std::endl;')
-                cog.outl('        return NULL;')
-                cog.outl('    }')
-                cog.outl('    singleton->wait(1, SC_NS);')
-                cog.outl('    std::string outs (outport);')
-
-                num_ports = len(top_p.outPorts)
-                for port in top_p.outPorts:
-                    if num_ports > 1:
-                        cog.outl(f"    if (outs == \\"{port.name}\\"){{")
-                        cog.outl(f"            singleton->{self.get_sysc_port_name(port)}->write(data);")
-                        cog.outl("    }")
-                    else:
-                        cog.outl(f"    singleton->{self.get_sysc_port_name(port)}->write(data);")
-                cog.outl('    return Py_None;')
-                cog.outl("}")
-        ]]]*/
-        //[[[end]]]
-
-        /*[[[cog
-            if body_type is not PyInteractiveBody:
-                if body_type is PyConstBody:
-                    body = dill.loads(self._bodies[top_p.bodies[0]].python.dillImpl)
-                    val = body.eval()
-                for i, port in enumerate(top_p.outPorts):
-                    port_type = self.load_port_type(port)
-                    cog.outl(f"void {module_name}::set_{self.get_sysc_port_name(port)}(){{")
-                    cog.outl(f"    if ({self.get_sysc_port_name(port)} != NULL){{")
-                    if body_type is PyConstBody:
-                        if len(top_p.outPorts) > 1:
-                            port_val = val[i]
-                        else:
-                            port_val = val
-                        if port_val is not None:
-                            cog.outl(f'        {self.get_sysc_port_name(port)}->nb_write("{port_type.pack(port_val).decode("ascii")}");')
-                        else:
-                            raise ValueError(f'None returned by constant node {top_p.name}.')
-                    else:
-                        if len(top_p.outPorts) > 1:
-                            cog.outl(f"        PyObject* acc_i = Py_BuildValue(\\"i\\", {i});")
-                            cog.outl(f"        PyObject* pyRet = PyObject_GetItem(this->pyC, acc_i);")
-                        else:
-                            cog.outl(f"        PyObject* pyRet = this->pyC;")
-                        cog.outl("        if (pyRet != Py_None){")
-                        cog.outl(f"            PyObject* pyBits = PyObject_CallMethodObjArgs(this->type_{self.get_sysc_port_name(port)}, PyUnicode_FromString(\\"pack\\"), pyRet, NULL);")
-                        cog.outl("             PyObject* pyErr = PyErr_Occurred();")
-                        cog.outl("             if (pyErr != NULL) {")
-                        cog.outl("                 PyErr_Print();")
-                        cog.outl("                 PyErr_Clear();")
-                        cog.outl("                 exit(-1);")
-                        cog.outl("             }")
-                        cog.outl(f"            char* bitsRet = PyBytes_AsString(pyBits);")
-                        cog.outl(f"            {self.get_sysc_port_name(port)}->write(bitsRet);")
-                        cog.outl("        }")
-                    cog.outl("    }")
-                    cog.outl("};")
-        ]]]*/
-        //[[[end]]]
-
-        //[[[cog cog.outl(f'void {module_name}::body(){{') ]]]
-        //[[[end]]]
-            /*[[[cog
-            if body_type is not PyInteractiveBody:
-                cog.outl('while (true) {')
-            ]]]*/
-            //[[[end]]]
-                /*[[[cog
-
-                    if body_type is not PyConstBody:
-                        if body_type is PyInteractiveBody:
-                            cog.outl('this->pyC = PyObject_CallMethodObjArgs(this->pBody, PyUnicode_FromString("eval"), this->pNode , NULL);')
-                        else:
-                            if top_p.inPorts:
-                                args = [f'get_{self.get_sysc_port_name(port)}()' for port in top_p.inPorts]
-                                cog.outl('this->pyC = PyObject_CallMethodObjArgs(this->pBody, PyUnicode_FromString("eval"),' + ",".join(args) +' ,NULL);')
-                            else:
-                                cog.outl('this->pyC = PyObject_CallMethod(this->pBody, "eval", NULL);')
-                        cog.outl("PyObject* pyErr = PyErr_Occurred();")
-                        cog.outl("if (pyErr != NULL) {")
-                        cog.outl("    if (PyErr_ExceptionMatches(this->pExit)) {")
-                        cog.outl("        PyErr_Clear();")
-                        cog.outl("        sc_stop();")
-                        if body_type is not PyInteractiveBody:
-                            cog.outl("        break;")
-                        cog.outl("    } else {")
-                        cog.outl("        PyErr_Print();")
-                        cog.outl("        PyErr_Clear();")
-                        cog.outl("        exit(-1);")
-                        cog.outl("    }")
-                        cog.outl("}")
-                ]]]*/
-                //[[[end]]]
-                /*[[[cog
-                    if body_type is not PyInteractiveBody:
-                        if body_type is PyConstBody:
-                            for port in top_p.outPorts:
-                                cog.outl(f'set_{self.get_sysc_port_name(port)}();')
-                        else:
-                            cog.outl("if (this->pyC != Py_None) {")
-                            for port in top_p.outPorts:
-                                cog.outl(f'    set_{self.get_sysc_port_name(port)}();')
-                            cog.outl("}")
-                ]]]*/
-                //[[[end]]]
-            /*[[[cog
-            if body_type is not PyInteractiveBody:
-                cog.outl('    wait(1, SC_NS);')
-                cog.outl('}')
-            ]]]*/
-            //[[[end]]]
-        };
-
-        //[[[cog cog.outl(f"int {module_name}::get_no_inputs() const") ]]]
-        //[[[end]]]
-        {
-            return no_ins;
-        };
-
-        //[[[cog cog.outl(f"int {module_name}::get_no_outputs() const") ]]]
-        //[[[end]]]
-        {
-            return no_outs;
-        };
-        """
         module_name = self.get_module_name(top_p)
         cpp_name = path.join(self.tempdir, f"{top_p.name}.cpp")
-        with open(cpp_name, "wb") as out_file:
-            out_file.write(cogify(cpp_tmpl,
-                                  globals=dict(globals(), **locals())))
+
+        cpp_tmpl = '#include "' + top_p.name + '.h"\n\n'
+
+        if body_type is PyInteractiveBody:
+            cpp_tmpl += f"{module_name}* {module_name}::singleton = nullptr;\n"
+
+        cpp_tmpl += f"{module_name}::{module_name}(sc_module_name name): " + \
+            "sc_module(name) {\n"
+
+        cpp_tmpl_ind = ""
+
+        if body_type is PyInteractiveBody:
+            cpp_tmpl_ind = "if (singleton == nullptr) {\n"
+            cpp_tmpl_ind += "singleton = this;\n"
+            cpp_tmpl_ind += "} else {\n"
+            cpp_tmpl_ind += f"std::cerr << \"attempted to construct multiple python for {module_name} modules - not supported!\" << std::endl;\n"
+            cpp_tmpl_ind += "exit(-1);\n"
+            cpp_tmpl_ind += "}\n"
+
+        if body_type is PyConstBody:
+            cpp_tmpl_ind = 'no_ins = 0;\n'
+        else:
+            cpp_tmpl_ind += f'no_ins = {len(top_p.inPorts)};\n'
+        cpp_tmpl_ind += f'no_outs = {len(top_p.outPorts)};\n'
+
+        if body_type is PyInteractiveBody:
+            cpp_tmpl_ind += f'const char* sc_module_name = "{module_name.lower()}_sysc";\n'
+            cpp_tmpl_ind += 'PyImport_AddModule(sc_module_name);\n'
+            cpp_tmpl_ind += 'PyObject* sys_modules = PyImport_GetModuleDict();\n'
+            cpp_tmpl_ind += 'PyObject* module = PyInit_sysc();\n'
+            cpp_tmpl_ind += 'PyDict_SetItemString(sys_modules, sc_module_name, module);\n'
+
+        if body_type is not PyConstBody:
+            cpp_tmpl_ind += f'this->pName = PyUnicode_DecodeFSDefault("{top_p.name}");\n'
+            cpp_tmpl_ind += "this->pModule = PyImport_Import(this->pName);\n"
+            cpp_tmpl_ind += "if (this->pModule == NULL) {\n"
+            cpp_tmpl_ind += "if (PyErr_Occurred()) PyErr_Print();\n"
+            cpp_tmpl_ind += f'std::cout << "failed to import {top_p.name} python module." << std::endl;\n'
+            cpp_tmpl_ind += "exit(-1);\n"
+            cpp_tmpl_ind += "}\n"
+            cpp_tmpl_ind += "this->pBody = PyObject_GetAttrString(this->pModule, \"body\");\n"
+            cpp_tmpl_ind += "if (this->pBody == NULL) {\n"
+            cpp_tmpl_ind += "if (PyErr_Occurred()) PyErr_Print();\n"
+            cpp_tmpl_ind += f'std::cout << "failed to import {top_p.name} python body." << std::endl;\n'
+            cpp_tmpl_ind += "exit(-1);\n"
+            cpp_tmpl_ind += "}\n"
+
+            if body_type is PyInteractiveBody:
+                cpp_tmpl_ind += "this->pNode = PyObject_GetAttrString(this->pModule, \"node\");\n"
+                cpp_tmpl_ind += "if (this->pBody == NULL) {\n"
+                cpp_tmpl_ind += "if (PyErr_Occurred()) PyErr_Print();\n"
+                cpp_tmpl_ind += f'std::cout << "failed to import {top_p.name} python interactive node." << std::endl;\n'
+                cpp_tmpl_ind += "exit(-1);\n"
+                cpp_tmpl_ind += "}\n"
+
+            cpp_tmpl_ind += "PyObject *runtimeModule = PyImport_Import(PyUnicode_DecodeFSDefault(\"deltalanguage.runtime\"));\n"
+            cpp_tmpl_ind += "if (runtimeModule == NULL) {\n"
+            cpp_tmpl_ind += "if (PyErr_Occurred()) PyErr_Print();\n"
+            cpp_tmpl_ind += f'std::cout << "failed to import deltalanguage runtime in {top_p.name}." << std::endl;\n'
+            cpp_tmpl_ind += "exit(-1);\n"
+            cpp_tmpl_ind += "}\n"
+            cpp_tmpl_ind += "this->pExit = PyObject_GetAttrString(runtimeModule, \"DeltaRuntimeExit\");\n"
+            cpp_tmpl_ind += "if (this->pExit == NULL) {\n"
+            cpp_tmpl_ind += "if (PyErr_Occurred()) PyErr_Print();\n"
+            cpp_tmpl_ind += f'std::cout << "failed to import exit exception object from deltalanguage runtime in {top_p.name}." << std::endl;\n'
+            cpp_tmpl_ind += "exit(-1);\n"
+            cpp_tmpl_ind += "}\n"
+
+            for port in top_p.inPorts:
+                cpp_tmpl_ind += f"this->type_{self.get_sysc_port_name(port)} = PyObject_GetAttrString(this->pModule, \"{self.get_sysc_port_name(port)}\");\n"
+                cpp_tmpl_ind += f"if (this->type_{self.get_sysc_port_name(port)} == NULL){{\n"
+                cpp_tmpl_ind += "if (PyErr_Occurred()) PyErr_Print();\n"
+                cpp_tmpl_ind += f"std::cout << \"failed to import type for in port {port.name} in {top_p.name}.\" << std::endl;\n"
+                cpp_tmpl_ind += "exit(-1);\n"
+                cpp_tmpl_ind += "}\n"
+                cpp_tmpl_ind += f"{self.get_sysc_port_name(port)} = NULL;\n"
+
+        for port in top_p.outPorts:
+            if body_type is not PyConstBody:
+                cpp_tmpl_ind += f"this->type_{self.get_sysc_port_name(port)} = PyObject_GetAttrString(this->pModule, \"{self.get_sysc_port_name(port)}\");\n"
+                cpp_tmpl_ind += f"if (this->type_{self.get_sysc_port_name(port)} == NULL){{\n"
+                cpp_tmpl_ind += "if (PyErr_Occurred()) PyErr_Print();\n"
+
+                if port.name:
+                    cpp_tmpl_ind += f"std::cout << \"failed to import type for out port {port.name} in {top_p.name}.\" << std::endl;\n"
+                else:
+                    cpp_tmpl_ind += f"std::cout << \"failed to import return type in {top_p.name}.\" << std::endl;\n"
+                cpp_tmpl_ind += "exit(-1);\n"
+                cpp_tmpl_ind += "}\n"
+            cpp_tmpl_ind += f"{self.get_sysc_port_name(port)} = NULL;\n"
+
+        if body_type is not PyConstBody:
+            cpp_tmpl_ind += "Py_XDECREF(this->pName);\n"
+            cpp_tmpl_ind += "Py_XDECREF(this->pModule);\n"
+
+        cpp_tmpl_ind += "SC_THREAD(body);\n"
+        cpp_tmpl += textwrap.indent(cpp_tmpl_ind, indent_prefix) + "}\n\n"
+
+        if body_type not in [PyConstBody, PyInteractiveBody]:
+            for port in top_p.inPorts:
+                port_type = self.load_port_type(port)
+                cpp_tmpl += f"PyObject* {module_name}::get_{self.get_sysc_port_name(port)}(){{\n"
+                cpp_tmpl += textwrap.indent(f"if ({self.get_sysc_port_name(port)} == NULL) return Py_None;\n", indent_prefix)
+                if port.optional:
+                    cpp_tmpl += textwrap.indent(f"if (!{self.get_sysc_port_name(port)}->nb_read(bits_{self.get_sysc_port_name(port)})) return Py_None;\n", indent_prefix)
+                else:
+                    cpp_tmpl += textwrap.indent(f"bits_{self.get_sysc_port_name(port)} = {self.get_sysc_port_name(port)}->read();\n", indent_prefix)
+                cpp_tmpl += textwrap.indent(
+                    f"return PyObject_CallMethodObjArgs(this->type_{self.get_sysc_port_name(port)}, PyUnicode_FromString(\"unpack\"), PyBytes_FromStringAndSize(bits_{self.get_sysc_port_name(port)}.to_string().c_str(), {port_type.size}), NULL);\n", 
+                    indent_prefix
+                )
+                cpp_tmpl += "};\n"
+
+        if body_type is PyInteractiveBody:
+            cpp_tmpl += f"PyMethodDef {module_name}::SysCMethods[] = {{\n"
+            cpp_tmpl += "{\"receive\", sc_receive, METH_VARARGS, \"Receives data from the systemC interface\"},\n"
+            cpp_tmpl += "{\"send\", sc_send, METH_VARARGS, \"Sends data to the systemC interface\"},\n"
+            cpp_tmpl += "{NULL, NULL, 0, NULL}\n"
+            cpp_tmpl += "};\n"
+
+            cpp_tmpl += f"PyModuleDef {module_name}::SysCModule = {{\n"
+            cpp_tmpl += f"PyModuleDef_HEAD_INIT, \"{module_name.lower()}_sysc\", NULL, -1, SysCMethods,\n"
+            cpp_tmpl += "NULL, NULL, NULL, NULL\n"
+            cpp_tmpl += "};\n"
+
+            cpp_tmpl += f"PyObject* {module_name}::PyInit_sysc(void)\n"
+            cpp_tmpl += "{\n"
+            cpp_tmpl += f"std::cout << \"{module_name}::PyInit_sysc() called \" << std::endl;\n"
+            cpp_tmpl += "return PyModule_Create(&SysCModule);\n"
+            cpp_tmpl += "}\n"
+
+            cpp_tmpl += f"PyObject* {module_name}::sc_receive(PyObject *self, PyObject *args){{\n"
+            cpp_tmpl += textwrap.indent('const char * inport; \n', indent_prefix)
+            cpp_tmpl += textwrap.indent('bool retval; \n', indent_prefix)
+
+            for port in top_p.inPorts:
+                cpp_tmpl += f"{self.as_c_type(port.type)} bv_{self.get_sysc_port_name(port)};\n"
+
+            cpp_tmpl += textwrap.indent(
+                'if (!PyArg_ParseTuple(args, "s", &inport )) {\n', 
+                indent_prefix
+            )
+            cpp_tmpl += textwrap.indent(
+                'std::cout << "sc_receive::ERROR" << std::endl;\n',
+                indent_prefix * 2
+            )
+            cpp_tmpl += textwrap.indent('return NULL;\n', indent_prefix * 2)
+            cpp_tmpl += textwrap.indent('}\n', indent_prefix)
+            cpp_tmpl += textwrap.indent('std::string ins (inport);\n', indent_prefix)
+
+            num_ports = len(top_p.inPorts)
+            for port in top_p.inPorts:
+                port_type = self.load_port_type(port)
+                if num_ports > 1:
+                    cpp_tmpl += textwrap.indent(
+                        f"if (ins == \"{port.name}\") {{\n", indent_prefix
+                    )
+                if port.optional:
+                    cpp_tmpl += textwrap.indent(f"if (singleton->{self.get_sysc_port_name(port)} == NULL) return Py_None;\n", indent_prefix * 2)
+                    cpp_tmpl += textwrap.indent(
+                        f"retval = singleton->{self.get_sysc_port_name(port)}->nb_read(bv_{self.get_sysc_port_name(port)});\n",
+                        indent_prefix * 2
+                    )
+                    cpp_tmpl += textwrap.indent("if (retval == false){\n", indent_prefix * 2)
+                    cpp_tmpl += textwrap.indent("return Py_None;\n", indent_prefix * 3)
+                    cpp_tmpl += textwrap.indent("}\n", indent_prefix * 2)
+                else:
+                    cpp_tmpl += textwrap.indent(
+                        f"singleton->{self.get_sysc_port_name(port)}->read(bv_{self.get_sysc_port_name(port)});\n",
+                        indent_prefix * 2
+                    )
+                cpp_tmpl += f"return PyObject_CallMethodObjArgs(singleton->type_{self.get_sysc_port_name(port)}, " + \
+                    f"PyUnicode_FromString(\"unpack\"), PyBytes_FromStringAndSize(bv_{self.get_sysc_port_name(port)}.to_string().c_str(), " + \
+                    f"{port_type.size}), NULL);\n"
+                if num_ports > 1:
+                    cpp_tmpl += "}\n"
+
+            cpp_tmpl += textwrap.indent('PyErr_SetString(PyExc_TypeError, "Unrecognized argument");\n', indent_prefix)
+            cpp_tmpl += textwrap.indent('return (PyObject *) NULL;\n', indent_prefix)
+            cpp_tmpl += "}\n"
+
+            cpp_tmpl += f"PyObject* {module_name}::sc_send(PyObject *self, PyObject *args){{\n"
+            cpp_tmpl += textwrap.indent('const char * outport;\n', indent_prefix)
+            cpp_tmpl += textwrap.indent('const char * data;\n', indent_prefix)
+            cpp_tmpl += textwrap.indent('if (!PyArg_ParseTuple(args, "ss*", &outport, &data)) {\n', indent_prefix)
+            cpp_tmpl += textwrap.indent('std::cout << "sc_send::ERROR" << std::endl;\n', indent_prefix * 2)
+            cpp_tmpl += textwrap.indent('return NULL;\n', indent_prefix * 2)
+            cpp_tmpl += textwrap.indent('}\n', indent_prefix)
+            cpp_tmpl += textwrap.indent('singleton->wait(1, SC_NS);\n', indent_prefix)
+            cpp_tmpl += textwrap.indent('std::string outs (outport);\n', indent_prefix)
+
+            num_ports = len(top_p.outPorts)
+            for port in top_p.outPorts:
+                if num_ports > 1:
+                    cpp_tmpl += textwrap.indent(f"if ((outs == \"{port.name}\") && (singleton->{self.get_sysc_port_name(port)} != NULL)){{\n", indent_prefix)
+                    cpp_tmpl += textwrap.indent(f"singleton->{self.get_sysc_port_name(port)}->write(data);\n", indent_prefix * 3)
+                    cpp_tmpl += textwrap.indent("}\n", indent_prefix)
+                else:
+                    cpp_tmpl += textwrap.indent(f"if (singleton->{self.get_sysc_port_name(port)} != NULL) singleton->{self.get_sysc_port_name(port)}->write(data);\n", indent_prefix)
+            cpp_tmpl += textwrap.indent('return Py_None;\n', indent_prefix)
+            cpp_tmpl += "}\n"
+
+        if body_type is not PyInteractiveBody:
+            if body_type is PyConstBody:
+                body = dill.loads(self._bodies[body_id].python.dillImpl)
+                try:
+                    val = body.eval()
+                except DeltaRuntimeExit:
+                    raise ValueError(
+                        "DeltaRuntimeExit raised during build process."
+                    )
+                except:
+                    raise ValueError(
+                        "Exception raised during build process."
+                    )
+            for i, port in enumerate(top_p.outPorts):
+                port_type = self.load_port_type(port)
+                cpp_tmpl += f"\nvoid {module_name}::set_{self.get_sysc_port_name(port)}(){{\n"
+                cpp_tmpl += textwrap.indent(f"if ({self.get_sysc_port_name(port)} != NULL){{\n", indent_prefix)
+
+                if body_type is PyConstBody:
+                    if len(top_p.outPorts) > 1:
+                        port_val = val[i]
+                    else:
+                        port_val = val
+                    if port_val is not None:
+                        cpp_tmpl += textwrap.indent(
+                            f'{self.get_sysc_port_name(port)}->nb_write("{port_type.pack(port_val).decode("ascii")}");\n',
+                            indent_prefix * 2
+                        )
+                    else:
+                        raise ValueError(f'None returned by constant node {top_p.name}.')
+                else:
+                    if len(top_p.outPorts) > 1:
+                        cpp_tmpl += textwrap.indent(
+                            f"PyObject* acc_i = Py_BuildValue(\"i\", {i});\n",
+                            indent_prefix * 2
+                        )
+                        cpp_tmpl += textwrap.indent(
+                            f"PyObject* pyRet = PyObject_GetItem(this->pyC, acc_i);\n",
+                            indent_prefix * 2
+                        )
+                    else:
+                        cpp_tmpl += textwrap.indent(f"PyObject* pyRet = this->pyC;\n", indent_prefix * 2)
+
+                    cpp_tmpl += textwrap.indent("if (pyRet != Py_None){\n", indent_prefix * 2)
+                    cpp_tmpl += textwrap.indent(
+                        f"PyObject* pyBits = PyObject_CallMethodObjArgs(this->type_{self.get_sysc_port_name(port)}, PyUnicode_FromString(\"pack\"), pyRet, NULL);\n",
+                        indent_prefix * 3
+                    )
+                    cpp_tmpl += textwrap.indent("PyObject* pyErr = PyErr_Occurred();\n", indent_prefix * 3)
+                    cpp_tmpl += textwrap.indent("if (pyErr != NULL) {\n", indent_prefix * 3)
+                    cpp_tmpl += textwrap.indent("PyErr_Print();\n", indent_prefix * 4)
+                    cpp_tmpl += textwrap.indent("PyErr_Clear();\n", indent_prefix * 4)
+                    cpp_tmpl += textwrap.indent("exit(-1);\n", indent_prefix * 4)
+                    cpp_tmpl += textwrap.indent("}\n", indent_prefix * 3)
+                    cpp_tmpl += textwrap.indent(f"char* bitsRet = PyBytes_AsString(pyBits);\n", indent_prefix * 3)
+                    cpp_tmpl += textwrap.indent(f"{self.get_sysc_port_name(port)}->write(bitsRet);\n", indent_prefix * 3)
+                    cpp_tmpl += textwrap.indent("}\n", indent_prefix * 2)
+                cpp_tmpl += textwrap.indent("}\n", indent_prefix)
+                cpp_tmpl += "};\n"
+
+        cpp_tmpl += f'\nvoid {module_name}::body(){{\n'
+
+        if body_type is not PyInteractiveBody:
+            cpp_tmpl += textwrap.indent('while (true) {\n', indent_prefix)
+
+        cpp_tmpl_ind = ""
+
+        if body_type is not PyConstBody:
+            if body_type is PyInteractiveBody:
+                cpp_tmpl_ind += 'this->pyC = PyObject_CallMethodObjArgs(this->pBody, PyUnicode_FromString("eval"), this->pNode , NULL);\n'
+            else:
+                if top_p.inPorts:
+                    args = [f'get_{self.get_sysc_port_name(port)}()' for port in top_p.inPorts]
+                    cpp_tmpl_ind += 'this->pyC = PyObject_CallMethodObjArgs(this->pBody, PyUnicode_FromString("eval"),' + ",".join(args) +' ,NULL);\n'
+                else:
+                    cpp_tmpl_ind += 'this->pyC = PyObject_CallMethod(this->pBody, "eval", NULL);\n'
+            cpp_tmpl_ind += "PyObject* pyErr = PyErr_Occurred();\n"
+            cpp_tmpl_ind += "if (pyErr != NULL) {\n"
+            cpp_tmpl_ind += textwrap.indent("if (PyErr_ExceptionMatches(this->pExit)) {\n", indent_prefix)
+            cpp_tmpl_ind += textwrap.indent("PyErr_Clear();\n", indent_prefix * 2)
+            cpp_tmpl_ind += textwrap.indent("sc_stop();\n", indent_prefix * 2)
+
+            if body_type is not PyInteractiveBody:
+                cpp_tmpl_ind += textwrap.indent("break;\n", indent_prefix * 2)
+            cpp_tmpl_ind += textwrap.indent("} else {\n", indent_prefix)
+            cpp_tmpl_ind += textwrap.indent("PyErr_Print();\n", indent_prefix * 2)
+            cpp_tmpl_ind += textwrap.indent("PyErr_Clear();\n", indent_prefix * 2)
+            cpp_tmpl_ind += textwrap.indent("exit(-1);\n", indent_prefix * 2)
+            cpp_tmpl_ind += textwrap.indent("}\n", indent_prefix)
+            cpp_tmpl_ind += "}\n"
+
+        if body_type is not PyInteractiveBody:
+            if body_type is PyConstBody:
+                for port in top_p.outPorts:
+                    cpp_tmpl_ind += f'set_{self.get_sysc_port_name(port)}();\n'
+            else:
+                cpp_tmpl_ind += "if (this->pyC != Py_None) {\n"
+                for port in top_p.outPorts:
+                    cpp_tmpl_ind += textwrap.indent(
+                        f'set_{self.get_sysc_port_name(port)}();\n',
+                        indent_prefix
+                    )
+                cpp_tmpl_ind += "}\n"
+
+        if body_type is not PyInteractiveBody:
+            cpp_tmpl_ind += 'wait(1, SC_NS);\n'
+
+        cpp_tmpl += textwrap.indent(cpp_tmpl_ind, indent_prefix * 2)
+
+        if body_type is not PyInteractiveBody:
+            cpp_tmpl += textwrap.indent('}\n', indent_prefix)
+
+        cpp_tmpl += '};\n'
+
+        cpp_tmpl += f"\nint {module_name}::get_no_inputs() const\n"
+        cpp_tmpl += '{\n'
+        cpp_tmpl += textwrap.indent('return no_ins;\n', indent_prefix)
+        cpp_tmpl += '};\n'
+
+        cpp_tmpl += f"\nint {module_name}::get_no_outputs() const\n"
+        cpp_tmpl += '{\n'
+        cpp_tmpl += textwrap.indent('return no_outs;\n', indent_prefix)
+        cpp_tmpl += '};\n'
+
+        with open(cpp_name, "w") as out_file:
+            out_file.write(cpp_tmpl)
 
         return True
 
@@ -675,7 +746,7 @@ class PythonatorEnv(CPPEnv):
         """
         return self._get_o(top_p.name, after)
 
-    def pythonate(self, top_p):
+    def pythonate(self, top_p, body_id):
         """Generates all the build outputs for this node.
 
         Parameters
@@ -696,11 +767,11 @@ class PythonatorEnv(CPPEnv):
             - "py": the Python file (only exists if the node is not constant)
             - "o": the built binary object
         """
-        body_class = self._bodies[top_p.bodies[0]].which()
+        body_class = self._bodies[body_id].which()
         if "python" in body_class:
-            body = self._bodies[top_p.bodies[0]].python.dillImpl
+            body = self._bodies[body_id].python.dillImpl
         if "interactive" in body_class:
-            body = self._bodies[top_p.bodies[0]].interactive.dillImpl
+            body = self._bodies[body_id].interactive.dillImpl
 
         body_types = {b"PyConstBody": PyConstBody,
                       b"PyInteractiveBody": PyInteractiveBody}
@@ -710,7 +781,7 @@ class PythonatorEnv(CPPEnv):
         else:
             body_type = None
 
-        make_cpp = self._make_cpp(top_p, body_type)
+        make_cpp = self._make_cpp(top_p, body_type, body_id)
         cpp = self._get_cpp(top_p, after=make_cpp)
         make_h = self._make_h(top_p, body_type)
         h = self._get_h(top_p, after=make_h)
